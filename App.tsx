@@ -12,6 +12,9 @@ import GetStartedScreen from './components/GetStartScreen';
 import LoginOption from './components/LoginOption';
 import ClientLogin from './components/ClientScreens/ClientLogin';
 import Register from './components/ClientScreens/Register';
+import LogInScreen from './components/SupplierScreen/LoginScreen';
+import SupplierRegister from './components/SupplierScreen/RegisterScreen';
+
 
 // Import Bottom Tabs Components
 import HomeScreen from './components/ClientScreens/HomeScreen';
@@ -94,6 +97,8 @@ export default function App() {
         <Stack.Screen name="LoginOption" component={LoginOption} />
         <Stack.Screen name="ClientLogin" component={ClientLogin} />
         <Stack.Screen name="Register" component={Register} />
+        <Stack.Screen name="SupplierLogin" component={LogInScreen} />
+        <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
 
         {/* This is where we place BottomTabs inside Stack Navigator */}
         <Stack.Screen name="Main" component={BottomTabs} />
