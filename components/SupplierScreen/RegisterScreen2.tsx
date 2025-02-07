@@ -3,39 +3,38 @@ import {
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
   KeyboardAvoidingView, Platform, ScrollView, Image 
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
-const SupplierRegister = ({ navigation }) => {
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const SupplierRegister2 = ({ navigation }) => {
+  const [BusinessName, setBusinessName] = useState('');
+  const [Address, setAddress] = useState('');
+  const [Location, setLocation] = useState('');
+  const [ContactNumber, setContactNumber] = useState('');
 
   const handleContinue = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!BusinessName || !Address || !Location || !ContactNumber) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
+  
     try {
-      // Create user with email and password
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-
-      // Save additional user data in Firestore
-      await firestore().collection('Supplier').doc(user.uid).set({
-        fullName,
-        email,
-        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
+      const user = auth().currentUser; // Get the logged-in user
+      if (!user) {
+        Alert.alert('Error', 'User not found. Please sign in again.');
+        return;
+      }
+  
+      await firestore().collection('Supplier').doc(user.uid).update({
+        BusinessName,
+        Address,
+        Location,
+        ContactNumber,
+        createdAt: firestore.FieldValue.serverTimestamp(), // Firestore timestamp
       });
-
-      Alert.alert('Success', 'Account created successfully!');
-      navigation.navigate('SupplierRegister2');
+  
+      Alert.alert('Success', 'Business details saved!');
+      navigation.navigate('SupplierCategory');
     } catch (error) {
       Alert.alert('Error', error.message);
     }
@@ -45,13 +44,13 @@ const SupplierRegister = ({ navigation }) => {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
-        <Text style={styles.title}>Create Your Account</Text>
-        <Text style={styles.subtitle}>Together, We'll Craft Memorable Events.</Text>
+        <Text style={styles.title}>Create Your Business Profile</Text>
+        <Text style={styles.subtitle}>Let's set up your business details.</Text>
 
-        <TextInput style={styles.input} placeholder="Enter Full Name" value={fullName} onChangeText={setFullName} />
-        <TextInput style={styles.input} placeholder="Enter Email Address" value={email} onChangeText={setEmail} keyboardType="email-address" />
-        <TextInput style={styles.input} placeholder="Enter Password" value={password} onChangeText={setPassword} secureTextEntry />
-        <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+        <TextInput style={styles.input} placeholder="Business Name" value={BusinessName} onChangeText={setBusinessName} />
+        <TextInput style={styles.input} placeholder="Business Address" value={Address} onChangeText={setAddress} keyboardType='default' />
+        <TextInput style={styles.input} placeholder="Location" value={Location} onChangeText={setLocation} />
+        <TextInput style={styles.input} placeholder="Business Contact Number" value={ContactNumber} onChangeText={setContactNumber} keyboardType="number-pad" />
 
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continue</Text>
@@ -79,4 +78,4 @@ const styles = StyleSheet.create({
   signInLink: { color: '#007bff', fontWeight: 'bold' },
 });
 
-export default SupplierRegister;
+export default SupplierRegister2;

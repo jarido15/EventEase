@@ -1,30 +1,31 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
-  Image
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import auth from '@react-native-firebase/auth';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
-    Alert.alert('Success', `Welcome ${email}!`);
-    navigation.navigate('Home'); // Change 'Home' to your next screen
+
+    try {
+      // Firebase Authentication Login
+      await auth().signInWithEmailAndPassword(email, password);
+      Alert.alert('Success', `Welcome ${email}!`);
+      navigation.navigate('Suppliermain'); // Change 'Home' to your next screen
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        Alert.alert('Error', 'User not found');
+      } else if (error.code === 'auth/wrong-password') {
+        Alert.alert('Error', 'Incorrect password');
+      } else {
+        Alert.alert('Error', error.message);
+      }
+    }
   };
 
   return (
@@ -34,12 +35,12 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
 
-        <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
-
-        <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
-        <Image source={require('../images/arrow.png')} style={styles.arrow}/>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
+            <Image source={require('../images/arrow.png')} style={styles.arrow}/>
+          </TouchableOpacity>
+          
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -62,7 +63,7 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-          <TouchableOpacity style={styles.button}  onPress={() => navigation.navigate('Main')}>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
@@ -73,8 +74,6 @@ const LoginScreen = ({ navigation }) => {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
-
-    
   );
 };
 
@@ -89,18 +88,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
   },
-    eclipse: {
-      width: 230,
-      height: 240,
-      bottom: '15%',
-      right: '22%',
-    },
-    arrow:{
-      width: 40,
-      height: 36,
-      right: '40%',
-      bottom: 280,
-    },
+  eclipse: {
+    width: 230,
+    height: 240,
+    bottom: '15%',
+    right: '22%',
+  },
+  arrow: {
+    width: 40,
+    height: 36,
+    right: '40%',
+    bottom: 280,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',

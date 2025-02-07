@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "525459876758",
-    "project_id": "eventease-c5c05",
-    "storage_bucket": "eventease-c5c05.firebasestorage.app"
+    "project_number": "547402221261",
+    "project_id": "eventease-550b2",
+    "storage_bucket": "eventease-550b2.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:525459876758:android:b984c67a94949bd5288bb7",
+        "mobilesdk_app_id": "1:547402221261:android:0513dc16fb6420dd8ccb84",
         "android_client_info": {
           "package_name": "com.eventease"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDTJ47ShJLiC7hTTTIBvukRgrLoR29lcfU"
+          "current_key": "AIzaSyBPEwG_dt5wzdW4wew1vIAw1hzU3zBhrWs"
         }
       ],
       "services": {
