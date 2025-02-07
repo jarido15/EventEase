@@ -73,6 +73,8 @@ const LoginScreen = ({ navigation }) => {
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
+
+    
   );
 };
 
