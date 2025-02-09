@@ -1,60 +1,141 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Button, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Button, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Appbar, Card } from 'react-native-paper';
 import * as ImagePicker from 'react-native-image-picker';
-
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 
 const Products = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [serviceName, setServiceName] = useState('');
+  const [servicePrice, setServicePrice] = useState('');
+  const [description, setDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
 
-  // Function to open image picker
-  // const handleSelectImage = () => {
-  //   ImagePicker.launchImageLibrary({ mediaType: 'photo' }, (response) => {
-  //     if (!response.didCancel && response.assets && response.assets.length > 0) {
-  //       setImageUri(response.assets[0].uri || null);
-  //     }
-  //   });
-  // };
-  
+  // Function to pick an image
+  const handleSelectImage = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (!response.didCancel && response.assets && response.assets.length > 0) {
+        setImageUri(response.assets[0].uri || null);
+      }
+    });
+  };
+
+  // Function to upload image to Firebase Storage
+  const uploadImage = async () => {
+    if (!imageUri) {
+      Alert.alert('Error', 'Please select an image.');
+      return null;
+    }
+
+    const user = auth().currentUser;
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to upload.');
+      return null;
+    }
+
+    const filename = `Supplier/${user.uid}/services/${Date.now()}.jpg`;
+    const storageRef = storage().ref(filename);
+    
+    setUploading(true);
+    try {
+      await storageRef.putFile(imageUri);
+      const downloadURL = await storageRef.getDownloadURL();
+      setUploading(false);
+      return downloadURL;
+    } catch (error) {
+      setUploading(false);
+      console.error('Upload failed:', error);
+      return null;
+    }
+  };
+
+  // Function to upload service details to Firestore
+  const addService = async () => {
+    if (!serviceName || !servicePrice || !description) {
+      Alert.alert('Error', 'All fields are required.');
+      return;
+    }
+
+    const imageUrl = await uploadImage();
+    if (!imageUrl) return;
+
+    const user = auth().currentUser;
+    if (!user) {
+      Alert.alert('Error', 'User not authenticated.');
+      return;
+    }
+
+    try {
+      await firestore()
+        .collection('Supplier')
+        .doc(user.uid)
+        .collection('Services')
+        .add({
+          serviceName,
+          servicePrice,
+          description,
+          imageUrl,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+
+      Alert.alert('Success', 'Service added successfully!');
+      setServiceName('');
+      setServicePrice('');
+      setDescription('');
+      setImageUri(null);
+    } catch (error) {
+      console.error('Error adding service:', error);
+      Alert.alert('Error', 'Failed to add service.');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* App Bar */}
       <Appbar.Header>
-        <Appbar.Content title="Products" />
+        <Appbar.Content title="Services" />
       </Appbar.Header>
 
-      {/* Product Card */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text style={styles.label}>Product Image:</Text>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text style={styles.label}>Product Image:</Text>
 
-          {/* Image Preview */}
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} style={styles.image} />
-          ) : (
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.placeholderText}>No Image Selected</Text>
+            {imageUri ? (
+              <Image source={{ uri: imageUri }} style={styles.image} />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.placeholderText}>No Image Selected</Text>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.addImageButton} onPress={handleSelectImage}>
+              <Text style={styles.addImageText}>📸 Add Image</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.label}>Service Name:</Text>
+            <TextInput style={styles.input} placeholder="Enter service name" value={serviceName} onChangeText={setServiceName} />
+
+            <Text style={styles.label}>Service Price:</Text>
+            <TextInput style={styles.input} placeholder="Enter Service price" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />
+
+            <Text style={styles.label}>Description:</Text>
+            <TextInput
+              style={[styles.input, styles.descriptionInput]}
+              placeholder="Description"
+              multiline={true}
+              numberOfLines={4}
+              value={description}
+              onChangeText={setDescription}
+            />
+
+            <View style={{ marginTop: 20 }}>
+              <Button title={uploading ? "Uploading..." : "Add Service"} onPress={addService} disabled={uploading} />
             </View>
-          )}
-
-          {/* Add Image Button */}
-          <TouchableOpacity style={styles.addImageButton} >
-            <Text style={styles.addImageText}>📸 Add Image</Text>
-          </TouchableOpacity>
-
-          <Text style={styles.label}>Product Name:</Text>
-          <TextInput style={styles.input} placeholder="Enter product name" />
-
-          <Text style={styles.label}>Product Price:</Text>
-          <TextInput style={styles.input} placeholder="Enter product price" keyboardType="numeric" />
-
-          {/* Added spacing between price input and button */}
-          <View style={{ marginTop: 20 }}>
-            <Button title="Add Product" onPress={() => console.log('Product Added')} />
-          </View>
-        </Card.Content>
-      </Card>
+          </Card.Content>
+        </Card>
+      </ScrollView>
     </View>
   );
 };
@@ -63,6 +144,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  scrollViewContent: {
+    paddingBottom: 20,
+  },
+  descriptionInput: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   card: {
     margin: 20,
