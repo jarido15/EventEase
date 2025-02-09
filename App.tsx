@@ -28,6 +28,7 @@ import ChatsScreen from './components/ClientScreens/ChatScreen';
 import ProfileScreen from './components/ClientScreens/ProfileScreen';
 import Products from './components/SupplierScreen/Products';
 import Chats from './components/SupplierScreen/chat';
+import ServiceEditScreen from './components/SupplierScreen/ServiceEditScreen';
 
 
 
@@ -174,6 +175,7 @@ export default function App() {
         <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
+        <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
 
 
         {/* This is where we place BottomTabs inside Stack Navigator */}
