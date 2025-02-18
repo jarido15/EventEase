@@ -18,6 +18,7 @@ import SupplierRegister2 from './components/SupplierScreen/RegisterScreen';
 import SupplierCategory from './components/SupplierScreen/SupplierCategory';
 import RegisterScreen2 from './components/SupplierScreen/RegisterScreen2';
 import SupplierHomeScreen from './components/SupplierScreen/SupplierHomeScreen';
+import CreateEvent from './components/ClientScreens/CreateEvent';
 
 
 
@@ -176,7 +177,7 @@ export default function App() {
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
         <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
-
+        <Stack.Screen name="CreateEvent" component={CreateEvent} />
 
         {/* This is where we place BottomTabs inside Stack Navigator */}
         <Stack.Screen name="Main" component={BottomTabs} />

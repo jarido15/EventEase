@@ -13,20 +13,33 @@ import {
   Keyboard,
   Image
 } from 'react-native';
+import auth from '@react-native-firebase/auth';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
-    Alert.alert('Success', `Welcome ${email}!`);
-    navigation.navigate('Home'); // Change 'Home' to your next screen
-  };
 
+    try {
+      // Firebase Authentication Login
+      await auth().signInWithEmailAndPassword(email, password);
+      Alert.alert('Success', `Welcome ${email}!`);
+      navigation.navigate('Main'); // Change 'Home' to your next screen
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        Alert.alert('Error', 'User not found');
+      } else if (error.code === 'auth/wrong-password') {
+        Alert.alert('Error', 'Incorrect password');
+      } else {
+        Alert.alert('Error', error.message);
+      }
+    }
+  };
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -62,7 +75,7 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-          <TouchableOpacity style={styles.button}  onPress={() => navigation.navigate('Main')}>
+            <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
