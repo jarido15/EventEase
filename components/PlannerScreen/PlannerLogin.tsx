@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore'; // Add this import
 
-const LoginScreen = ({ navigation }) => {
+const PlannerLogin = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -12,23 +11,12 @@ const LoginScreen = ({ navigation }) => {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
-  
+
     try {
-      // Check if email exists in "Supplier" collection
-      const supplierDoc = await firestore()
-        .collection('Supplier')
-        .where('email', '==', email)
-        .get();
-  
-      if (supplierDoc.empty) {
-        Alert.alert('Error', 'This email is not registered as a supplier.');
-        return;
-      }
-  
       // Firebase Authentication Login
       await auth().signInWithEmailAndPassword(email, password);
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Suppliermain'); // Change 'Home' to your next screen
+      navigation.navigate('Plannermain'); // Change 'Home' to your next screen
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
@@ -79,7 +67,7 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
+          <TouchableOpacity onPress={() => navigation.navigate('PlannerRegister')}>
             <Text style={styles.registerText}>Don't have an account?</Text>
             <Text style={styles.register}>Sign Up</Text>
           </TouchableOpacity>
@@ -162,4 +150,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default PlannerLogin;
