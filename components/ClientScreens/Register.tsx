@@ -14,6 +14,8 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const { width } = Dimensions.get('window'); // Get screen width for scrolling
 
@@ -26,8 +28,8 @@ const Register = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [page, setPage] = useState(0); // Track page index
 
-  const handleRegister = () => {
-    if (!fullName || !mobileNumber || !email || !password || !confirmPassword) {
+  const handleRegister = async () => {
+    if (!fullName || !email || !password || !confirmPassword || !mobileNumber || !Address) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
@@ -35,9 +37,29 @@ const Register = ({ navigation }) => {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    Alert.alert('Success', `Welcome ${fullName}!`);
-    navigation.navigate('Home');
+  
+    try {
+      // Create user with email and password
+      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+  
+      // Save additional user data in Firestore
+      await firestore().collection('Clients').doc(user.uid).set({
+        uid: user.uid, // Save uid
+        fullName,
+        mobileNumber,
+        Address,
+        email,
+        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
+      });
+  
+      Alert.alert('Success', 'Account created successfully!');
+      navigation.navigate('ClientLogin');
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
   };
+  
 
   return (
     <KeyboardAvoidingView
