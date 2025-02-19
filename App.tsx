@@ -22,6 +22,7 @@ import CreateEvent from './components/ClientScreens/CreateEvent';
 
 
 
+
 // Import Bottom Tabs Components
 import HomeScreen from './components/ClientScreens/HomeScreen';
 import SearchScreen from './components/ClientScreens/SearchScreen';
@@ -30,6 +31,15 @@ import ProfileScreen from './components/ClientScreens/ProfileScreen';
 import Products from './components/SupplierScreen/Products';
 import Chats from './components/SupplierScreen/chat';
 import ServiceEditScreen from './components/SupplierScreen/ServiceEditScreen';
+import PlannerRegister from './components/PlannerScreen/PlannerRegister';
+import PlannerHomeScreen from './components/PlannerScreen/PlannerHomeScreen';
+import PlannerLogin from './components/PlannerScreen/PlannerLogin';
+import PlannerEvent from './components/PlannerScreen/PlannerEvent';
+import PlannerProfileScreen from './components/PlannerScreen/PlannerProfile';
+import PlannerChat from './components/PlannerScreen/PlannerChat';
+import PlannerChatScreen from './components/PlannerScreen/PlannerChatScreen';
+import SupplierChat from './components/SupplierScreen/SupplierChat';
+import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
 
 
 
@@ -102,7 +112,6 @@ function BottomTabs() {
   );
 }
 
-
 function SupplierBottomTabs() {
   return (
     <Tab.Navigator 
@@ -146,7 +155,7 @@ function SupplierBottomTabs() {
       />
       <Tab.Screen 
         name="Chats"
-        component={Chats}
+        component={SupplierChat}
         options={{ headerShown: false }} // Remove header for Chats tab
       />
       <Tab.Screen 
@@ -157,7 +166,60 @@ function SupplierBottomTabs() {
     </Tab.Navigator>
   );
 }
+function PlannerBottomTabs() {
+  return (
+    <Tab.Navigator 
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused }) => {
+          let iconSource;
+          if (route.name === 'Home') iconSource = homeIcon;
+          else if (route.name === 'Products') iconSource = productIcon;
+          else if (route.name === 'Chats') iconSource = messageIcon;
+          else if (route.name === 'Profile') iconSource = profileIcon;
 
+          return (
+            <Image
+              source={iconSource}
+              style={{
+                width: 24,
+                height: 24,
+                tintColor: focused ? '#5392DD' : 'gray',
+              }}
+            />
+          );
+        },
+        tabBarActiveTintColor: '#5392DD',
+        tabBarInactiveTintColor: 'gray',
+        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarStyle: {
+          height: 70, // Set custom height for the bottom tab
+          paddingBottom: 10, // Optional: Adjust the padding at the bottom
+        },
+      })}
+    >
+      <Tab.Screen 
+        name="Home"
+        component={PlannerHomeScreen}
+        options={{ headerShown: false }} // Remove header for Home tab
+      />
+      <Tab.Screen 
+        name="Products"
+        component={PlannerEvent}
+        options={{ headerShown: false }} // Remove header for Search tab
+      />
+      <Tab.Screen 
+        name="Chats"
+        component={PlannerChat}
+        options={{ headerShown: false }} // Remove header for Chats tab
+      />
+      <Tab.Screen 
+        name="Profile"
+        component={PlannerProfileScreen}
+        options={{ headerShown: false }} // Remove header for Profile tab
+      />
+    </Tab.Navigator>
+  );
+}
 
 
 
@@ -177,11 +239,22 @@ export default function App() {
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
         <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
+<<<<<<< HEAD
+        <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
+        <Stack.Screen name="PlannerHomeScreen" component={PlannerHomeScreen} />
+        <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
+        <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
+        <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
+
+
+=======
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
+>>>>>>> 61f1fe97c3cc0a356a3c562612ff55352cc39bb1
 
         {/* This is where we place BottomTabs inside Stack Navigator */}
         <Stack.Screen name="Main" component={BottomTabs} />
         <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
+        <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
