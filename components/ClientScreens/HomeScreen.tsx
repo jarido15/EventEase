@@ -10,21 +10,33 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  FlatList, // Use FlatList for better performance
 } from 'react-native';
-import { auth, firestore } from '../../firebaseConfig'; // Ensure this path is correct
+import { auth, firestore } from '../../firebaseConfig';
 
 const HomeScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
+  const [events, setEvents] = useState([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const user = auth().currentUser; // Get the logged-in user
+      const user = auth().currentUser;
       if (user) {
         try {
-          const userDoc = await firestore().collection('Clients').doc(user.uid).get();
+          const userDocRef = firestore().collection('Clients').doc(user.uid);
+          const userDoc = await userDocRef.get();
           if (userDoc.exists) {
-            setFullName(userDoc.data().fullName); // Assuming 'fullName' is stored in Firestore
+            setFullName(userDoc.data().fullName);
           }
+
+          const eventsSnapshot = await userDocRef.collection('MyEvent').get();
+          const fetchedEvents = eventsSnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            eventDate: doc.data().eventDate,
+            venueType: doc.data().venueType,
+          }));
+          setEvents(fetchedEvents);
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
@@ -35,34 +47,64 @@ const HomeScreen = ({ navigation }) => {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1 }}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.container}>
-          <Text style={styles.name}>Hi! {fullName || 'User'}</Text>
-          <Text style={styles.subtitle}>Here is what is next for your event!</Text>
-          <Image source={require('../images/Ellipse.png')} style={styles.ellipse} />
+        <View style={styles.mainContainer}>
+          {/* Profile Section */}
+          <View style={styles.header}>
+            <Text style={styles.greetingText}>Hi, {fullName || 'User'} 👋</Text>
+            <Text style={styles.subheadingText}>Here’s what’s next for your event!</Text>
+          </View>
 
-          {/* Quick Access Section */}
-          <Text style={styles.quick}>Quick Access</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
-            <View style={styles.createevent}>
-              <Image source={require('../images/pen.png')} style={styles.penicon} />
-              <Text style={styles.makeevent}>Create Event</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Search Bar */}
+          <TextInput
+            style={styles.searchBar}
+            placeholder="Search for events or services..."
+            placeholderTextColor="#888"
+          />
 
-          <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-            <View style={styles.searchevent}>
-              <Image source={require('../images/findicon.png')} style={styles.findicon} />
-              <Text style={styles.findevent}>Browse Event</Text>
-            </View>
-          </TouchableOpacity>
+          {/* Quick Access */}
+          <View style={styles.quickAccessContainer}>
+            <TouchableOpacity style={styles.quickAccess} onPress={() => navigation.navigate('CreateEvent')}>
+              <Image source={require('../images/pen.png')} style={styles.icon} />
+              <Text style={styles.quickAccessText}>Create Event</Text>
+            </TouchableOpacity>
 
-          {/* Search bar */}
-          <TextInput style={styles.searchBar} placeholder="Search service" />
+            <TouchableOpacity style={styles.quickAccess} onPress={() => navigation.navigate('Search')}>
+              <Image source={require('../images/findicon.png')} style={styles.icon} />
+              <Text style={styles.quickAccessText}>Browse Events</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Events List with FlatList */}
+          <Text style={styles.sectionTitle}>Your Upcoming Events</Text>
+          {events.length > 0 ? (
+            <FlatList
+              data={events}
+              renderItem={({ item }) => (
+                <View style={styles.eventCard} key={item.id}>
+                  <Image
+                    source={item.eventImage ? { uri: item.eventImage } : require('../images/defaultEvent.jpg')}
+                    style={styles.eventImage}
+                  />
+                  <View style={styles.eventInfo}>
+                    <Text style={styles.eventTitle}>{item.eventName || 'Unnamed Event'}</Text>
+                    <Text style={styles.eventDetails}>
+                      📍 {item.venue || 'Venue not set'} | 🕒 {item.eventTime || 'Time not set'}
+                    </Text>
+                    <Text style={styles.eventDate}>📅 {item.eventDate || 'Date not set'}</Text>
+                    <Text style={styles.venueType}>🏠 {item.venueType || 'Venue type not set'}</Text>
+                    <Text style={styles.eventServices}>
+                      Services: {item.selectedServices?.join(', ') || 'No services selected'}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              keyExtractor={(item) => item.id}
+            />
+          ) : (
+            <Text style={styles.noEventsText}>No upcoming events yet.</Text>
+          )}
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -72,96 +114,134 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: '#F7F9FB',
   },
-  name: {
-    fontSize: 30,
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 40,
+    paddingBottom: 20,
+  },
+  header: {
+    marginBottom: 20,
+  },
+  greetingText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#5392DD', // Updated color
+  },
+  subheadingText: {
+    fontSize: 16,
     fontWeight: '400',
-    bottom: '26%',
-    right: '28%',
-  },
-  subtitle: {
-    fontSize: 12,
-    bottom: '26%',
-    right: '20%',
-    color: '#969696',
-  },
-  ellipse: {
-    width: 62,
-    height: 62,
-    bottom: '35%',
-    left: '30%',
+    color: '#6D6D6D',
+    marginTop: 4,
   },
   searchBar: {
-    height: 55,
-    width: '90%',
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 100,
-    paddingLeft: 10,
-    bottom: '50%',
+    height: 50,
+    backgroundColor: '#F1F1F1',
+    borderRadius: 60,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 20,
+    shadowColor: '#B0B0B0',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 5,
+    elevation: 3,
   },
-  quick: {
+  quickAccessContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 30,
+  },
+  quickAccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#A7C7E7',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 15,
+    width: '48%',
+    shadowColor: '#B0B0B0',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  icon: {
+    width: 22,
+    height: 22,
+    marginRight: 12,
+  },
+  quickAccessText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#fff',
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#2F2F2F',
+  },
+  eventCard: {
+    flexDirection: 'column',
+    backgroundColor: '#E6F2FF',
+    padding: 20,
+    borderRadius: 15,
+    marginBottom: 20,
+    shadowColor: '#B0B0B0',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 3,
+    width: '100%',
+    height: 370,
+  },
+  eventImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    resizeMode: 'cover',
+    marginBottom: 15,
+  },
+  eventInfo: {
+    flex: 1,
+    justifyContent: 'flex-start',
+  },
+  eventTitle: {
     fontSize: 18,
-    color: '#969696',
-    fontWeight: '800',
-    right: '30%',
-    bottom: '23%',
+    fontWeight: '600',
+    color: '#5392DD', // Updated color
   },
-  createevent: {
-    width: 157,
-    height: 50,
-    borderRadius: 50,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5, // For Android shadow
-    bottom: '300%',
-    right: '23%',
+  eventDetails: {
+    fontSize: 14,
+    color: '#6D6D6D',
+    marginTop: 5,
   },
-  penicon: {
-    width: 24,
-    height: 24,
-    top: 10,
-    right: 45,
+  eventDate: {
+    fontSize: 14,
+    color: '#FF7043',
+    marginTop: 5,
   },
-  makeevent: {
-    color: '#5392DD',
-    fontSize: 15,
-    left: 15,
-    bottom: 10,
+  venueType: {
+    fontSize: 14,
+    color: '#388E3C',
+    marginTop: 5,
   },
-  searchevent: {
-    width: 157,
-    height: 50,
-    borderRadius: 50,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5, // For Android shadow
-    bottom: '400%',
-    left: '23%',
+  eventServices: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#388E3C',
+    marginTop: 5,
   },
-  findicon: {
-    width: 24,
-    height: 24,
-    top: 10,
-    right: 45,
-  },
-  findevent: {
-    color: '#5392DD',
-    fontSize: 15,
-    left: 15,
-    bottom: 10,
+  noEventsText: {
+    textAlign: 'center',
+    fontSize: 16,
+    color: '#A0A0A0',
+    marginTop: 20,
   },
 });
 

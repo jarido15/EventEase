@@ -164,12 +164,12 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     backgroundColor: '#fff',
-    borderRadius: 10,
+    borderRadius: 30,
     padding: 12,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#DDD',
+    borderColor: '#5392DD',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -178,6 +178,8 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     backgroundColor: '#fff',
+    borderColor: '#5392DD',
+    borderWidth: 1,
     borderRadius: 10,
     marginBottom: 15,
   },
