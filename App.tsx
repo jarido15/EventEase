@@ -21,6 +21,7 @@ import SupplierHomeScreen from './components/SupplierScreen/SupplierHomeScreen';
 
 
 
+
 // Import Bottom Tabs Components
 import HomeScreen from './components/ClientScreens/HomeScreen';
 import SearchScreen from './components/ClientScreens/SearchScreen';
@@ -33,8 +34,11 @@ import PlannerRegister from './components/PlannerScreen/PlannerRegister';
 import PlannerHomeScreen from './components/PlannerScreen/PlannerHomeScreen';
 import PlannerLogin from './components/PlannerScreen/PlannerLogin';
 import PlannerEvent from './components/PlannerScreen/PlannerEvent';
-import PlannerChatScreen from './components/PlannerScreen/PlannerChat';
 import PlannerProfileScreen from './components/PlannerScreen/PlannerProfile';
+import PlannerChat from './components/PlannerScreen/PlannerChat';
+import PlannerChatScreen from './components/PlannerScreen/PlannerChatScreen';
+import SupplierChat from './components/SupplierScreen/SupplierChat';
+import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
 
 
 
@@ -150,7 +154,7 @@ function SupplierBottomTabs() {
       />
       <Tab.Screen 
         name="Chats"
-        component={Chats}
+        component={SupplierChat}
         options={{ headerShown: false }} // Remove header for Chats tab
       />
       <Tab.Screen 
@@ -204,7 +208,7 @@ function PlannerBottomTabs() {
       />
       <Tab.Screen 
         name="Chats"
-        component={PlannerChatScreen}
+        component={PlannerChat}
         options={{ headerShown: false }} // Remove header for Chats tab
       />
       <Tab.Screen 
@@ -237,7 +241,9 @@ export default function App() {
         <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
         <Stack.Screen name="PlannerHomeScreen" component={PlannerHomeScreen} />
         <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
-        
+        <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
+        <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
+
 
 
         {/* This is where we place BottomTabs inside Stack Navigator */}

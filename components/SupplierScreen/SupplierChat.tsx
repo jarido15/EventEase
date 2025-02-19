@@ -4,7 +4,7 @@ import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 
-const PlannerChat = () => {
+const SupplierChat = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const navigation = useNavigation();
 
@@ -12,7 +12,7 @@ const PlannerChat = () => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const suppliersSnapshot = await firestore().collection('Supplier').get();
+        const suppliersSnapshot = await firestore().collection('Planner').get();
         const clientsSnapshot = await firestore().collection('Clients').get();
 
         // Combine supplier and client data
@@ -49,7 +49,7 @@ const PlannerChat = () => {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.chatItem}
-            onPress={() => navigation.navigate('PlannerChatScreen', { user: item })}
+            onPress={() => navigation.navigate('SupplierChatScreen', { user: item })}
           >
             <Image source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
             <View style={styles.chatInfo}>
@@ -101,4 +101,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PlannerChat;
+export default SupplierChat;
