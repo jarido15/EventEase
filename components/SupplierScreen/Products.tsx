@@ -52,44 +52,47 @@ const Products = () => {
   };
 
   // Function to upload service details to Firestore
-  const addService = async () => {
-    if (!serviceName || !servicePrice || !description) {
-      Alert.alert('Error', 'All fields are required.');
-      return;
-    }
+// Function to upload service details to Firestore
+const addService = async () => {
+  if (!serviceName || !servicePrice || !description) {
+    Alert.alert('Error', 'All fields are required.');
+    return;
+  }
 
-    const imageUrl = await uploadImage();
-    if (!imageUrl) return;
+  const imageUrl = await uploadImage();
+  if (!imageUrl) return;
 
-    const user = auth().currentUser;
-    if (!user) {
-      Alert.alert('Error', 'User not authenticated.');
-      return;
-    }
+  const user = auth().currentUser;
+  if (!user) {
+    Alert.alert('Error', 'User not authenticated.');
+    return;
+  }
 
-    try {
-      await firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .add({
-          serviceName,
-          servicePrice,
-          description,
-          imageUrl,
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        });
+  try {
+    await firestore()
+      .collection('Supplier')
+      .doc(user.uid)
+      .collection('Services')
+      .add({
+        uid: user.uid,  // ✅ Adding UID field
+        serviceName,
+        servicePrice,
+        description,
+        imageUrl,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
 
-      Alert.alert('Success', 'Service added successfully!');
-      setServiceName('');
-      setServicePrice('');
-      setDescription('');
-      setImageUri(null);
-    } catch (error) {
-      console.error('Error adding service:', error);
-      Alert.alert('Error', 'Failed to add service.');
-    }
-  };
+    Alert.alert('Success', 'Service added successfully!');
+    setServiceName('');
+    setServicePrice('');
+    setDescription('');
+    setImageUri(null);
+  } catch (error) {
+    console.error('Error adding service:', error);
+    Alert.alert('Error', 'Failed to add service.');
+  }
+};
+
 
   return (
     <View style={styles.container}>

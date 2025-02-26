@@ -5,6 +5,8 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { SectionList } from 'react-native';
+import { requestUserPermission, getFCMToken } from '../Notification/notificationService';
+
 const Events = [
   { id: '1', name: 'Birthday Party', clientName: 'John Doe', date: '2025-03-10' },
   { id: '2', name: 'Anniversary Celebration', clientName: 'Emma Smith', date: '2025-06-15' },
@@ -103,6 +105,8 @@ const sections = [
   useFocusEffect(
     useCallback(() => {
       fetchServices(); // Remove the `if (user)` check
+
+      
     }, [])
   );
   
