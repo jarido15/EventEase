@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   StyleSheet,
   TextInput,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
@@ -17,7 +19,9 @@ const SearchScreen = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
-  const [locations, setLocations] = useState(["Calapan", "Naujan", "Victoria", "Socorro", "Pola", "Pinamalayan", "Gloria"]);
+  const [locations, setLocations] = useState([
+    'Calapan', 'Naujan', 'Victoria', 'Socorro', 'Pola', 'Pinamalayan', 'Gloria'
+  ]);
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -25,24 +29,27 @@ const SearchScreen = () => {
         const snapshot = await firestore().collection('Supplier').get();
         let serviceList = [];
         let locationSet = new Set(locations);
-
+  
         for (let doc of snapshot.docs) {
           const supplierData = doc.data();
-          locationSet.add(supplierData.Location); // Assuming 'Location' is the field in the Supplier collection
+          locationSet.add(supplierData.Location);
+  
           const servicesSnapshot = await doc.ref
             .collection('Services')
             .orderBy('createdAt', 'desc')
             .get();
+  
           servicesSnapshot.forEach((serviceDoc) => {
             serviceList.push({
               id: serviceDoc.id,
+              supplierId: doc.id, // 🔥 Add supplierId (Supplier document ID)
               ...serviceDoc.data(),
               supplierName: supplierData.fullName,
-              Location: supplierData.Location, // Storing the location from Supplier collection
+              Location: supplierData.Location,
             });
           });
         }
-
+  
         setServices(serviceList);
         setFilteredServices(serviceList);
         setLocations([...locationSet]);
@@ -52,9 +59,10 @@ const SearchScreen = () => {
         setLoading(false);
       }
     };
-
+  
     fetchServices();
   }, []);
+  
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -69,7 +77,6 @@ const SearchScreen = () => {
   const filterServices = (query, selectedLocation) => {
     let filtered = services;
 
-    // Search filtering (case-insensitive)
     if (query.trim() !== '') {
       filtered = filtered.filter(
         (item) =>
@@ -78,13 +85,57 @@ const SearchScreen = () => {
       );
     }
 
-    // Location filtering (case-sensitive or exact match)
     if (selectedLocation) {
-      filtered = filtered.filter((item) => item.Location === selectedLocation); // Note 'Location' field
+      filtered = filtered.filter((item) => item.Location === selectedLocation);
     }
 
     setFilteredServices(filtered);
   };
+
+  const handleBooking = async (service) => {
+    try {
+      // Check if supplierId exists
+      if (!service.supplierId) {
+        Alert.alert("Error", "Supplier ID is missing. Please try again.");
+        return;
+      }
+  
+      const serviceRef = firestore()
+        .collection('Supplier')
+        .doc(service.supplierId) // 🔥 Ensure this exists
+        .collection('Services')
+        .doc(service.id); // 🔥 Ensure this exists
+  
+      // Create a new booking
+      await firestore().collection('Bookings').add({
+        serviceId: service.id,
+        supplierId: service.supplierId, // 🔥 Save supplierId for reference
+        serviceName: service.serviceName,
+        supplierName: service.supplierName,
+        location: service.Location,
+        servicePrice: service.servicePrice,
+        imageUrl: service.imageUrl,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        status: 'Booked',
+      });
+  
+      // Verify if the service document exists before updating
+      const serviceDoc = await serviceRef.get();
+      if (!serviceDoc.exists) {
+        throw new Error("Service document not found");
+      }
+  
+      // Update the service status to "Booked"
+      await serviceRef.update({ status: 'Booked' });
+  
+      Alert.alert('Success', 'Service booked successfully!');
+    } catch (error) {
+      console.error('Error booking service:', error);
+      Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
+    }
+  };
+  
+  
 
   if (loading) {
     return (
@@ -128,7 +179,12 @@ const SearchScreen = () => {
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
-                <Text style={styles.price}>Price: ${item.servicePrice}</Text>
+                <Text style={styles.price}>Price: ₱{item.servicePrice}</Text>
+                
+                {/* Book Now Button */}
+                <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(item)}>
+                  <Text style={styles.bookButtonText}>Book Now</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -170,10 +226,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#5392DD',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   picker: {
     height: 50,
@@ -234,6 +286,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     marginTop: 8,
+  },
+  bookButton: {
+    marginTop: 12,
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  bookButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

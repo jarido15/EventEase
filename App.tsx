@@ -40,8 +40,10 @@ import PlannerChat from './components/PlannerScreen/PlannerChat';
 import PlannerChatScreen from './components/PlannerScreen/PlannerChatScreen';
 import SupplierChat from './components/SupplierScreen/SupplierChat';
 import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
+
 import SupplierProfileScreen from './components/SupplierScreen/SupplierProfileScreen';
 import SupplierBookingScreen from './components/SupplierScreen/SupplierBookingScreen';
+import ClientChatScreen from './components/ClientScreens/ClientChatScreen';
 
 
 
@@ -250,7 +252,7 @@ export default function App() {
         <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
         <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
-
+        <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
 
 
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
