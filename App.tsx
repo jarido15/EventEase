@@ -40,6 +40,9 @@ import PlannerChat from './components/PlannerScreen/PlannerChat';
 import PlannerChatScreen from './components/PlannerScreen/PlannerChatScreen';
 import SupplierChat from './components/SupplierScreen/SupplierChat';
 import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
+
+import SupplierProfileScreen from './components/SupplierScreen/SupplierProfileScreen';
+import SupplierBookingScreen from './components/SupplierScreen/SupplierBookingScreen';
 import ClientChatScreen from './components/ClientScreens/ClientChatScreen';
 
 
@@ -51,11 +54,13 @@ const chatsIcon = require('./components/images/chat.png');
 const profileIcon = require('./components/images/profile.png');
 const productIcon = require('./components/images/order.png');
 const messageIcon = require('./components/images/messenger.png');
+const bookingIcon = require('./components/images/booking.png');
 
 
 // Create Navigators
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+
 
 // Bottom Tabs Component
 function BottomTabs() {
@@ -122,7 +127,7 @@ function SupplierBottomTabs() {
           if (route.name === 'Home') iconSource = homeIcon;
           else if (route.name === 'Products') iconSource = productIcon;
           else if (route.name === 'Chats') iconSource = messageIcon;
-          else if (route.name === 'Profile') iconSource = profileIcon;
+          else if (route.name === 'Booking') iconSource = bookingIcon;
 
           return (
             <Image
@@ -139,8 +144,8 @@ function SupplierBottomTabs() {
         tabBarInactiveTintColor: 'gray',
         tabBarShowLabel: false, // Hide text labels if needed
         tabBarStyle: {
-          height: 70, // Set custom height for the bottom tab
-          paddingBottom: 10, // Optional: Adjust the padding at the bottom
+          height: 70,
+          paddingBottom: 10, 
         },
       })}
     >
@@ -160,8 +165,8 @@ function SupplierBottomTabs() {
         options={{ headerShown: false }} // Remove header for Chats tab
       />
       <Tab.Screen 
-        name="Profile"
-        component={ProfileScreen}
+        name="Booking"
+        component={SupplierBookingScreen}
         options={{ headerShown: false }} // Remove header for Profile tab
       />
     </Tab.Navigator>
@@ -228,6 +233,7 @@ function PlannerBottomTabs() {
 // Stack Navigator with Bottom Tabs
 export default function App() {
   return (
+    
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="GetStarted" component={GetStartedScreen} />
