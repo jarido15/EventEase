@@ -13,10 +13,7 @@ const ServicesInfoScreen = () => {
   const [isChecked, setIsChecked] = useState(false);
 
   const handleSubmit = () => {
-    if (!isChecked) {
-      alert('Please agree to the Terms and Conditions');
-      return;
-    }
+
     alert('Account Created Successfully!');
   };
 

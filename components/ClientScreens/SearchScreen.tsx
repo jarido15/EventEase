@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
+import functions from "@react-native-firebase/functions";
 
 const SearchScreen = () => {
   const [services, setServices] = useState([]);
@@ -64,6 +65,7 @@ const SearchScreen = () => {
   }, []);
   
 
+  
   const handleSearch = (query) => {
     setSearchQuery(query);
     filterServices(query, location);
@@ -94,46 +96,73 @@ const SearchScreen = () => {
 
   const handleBooking = async (service) => {
     try {
-      // Check if supplierId exists
-      if (!service.supplierId) {
-        Alert.alert("Error", "Supplier ID is missing. Please try again.");
-        return;
-      }
-  
-      const serviceRef = firestore()
-        .collection('Supplier')
-        .doc(service.supplierId) // 🔥 Ensure this exists
-        .collection('Services')
-        .doc(service.id); // 🔥 Ensure this exists
-  
-      // Create a new booking
-      await firestore().collection('Bookings').add({
-        serviceId: service.id,
-        supplierId: service.supplierId, // 🔥 Save supplierId for reference
-        serviceName: service.serviceName,
-        supplierName: service.supplierName,
-        location: service.Location,
-        servicePrice: service.servicePrice,
-        imageUrl: service.imageUrl,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        status: 'Booked',
-      });
-  
-      // Verify if the service document exists before updating
-      const serviceDoc = await serviceRef.get();
-      if (!serviceDoc.exists) {
-        throw new Error("Service document not found");
-      }
-  
-      // Update the service status to "Booked"
-      await serviceRef.update({ status: 'Booked' });
-  
-      Alert.alert('Success', 'Service booked successfully!');
+        if (!service.supplierId) {
+            Alert.alert("Error", "Supplier ID is missing. Please try again.");
+            return;
+        }
+
+        const serviceRef = firestore()
+            .collection('Supplier')
+            .doc(service.supplierId)
+            .collection('Services')
+            .doc(service.id);
+
+        // Create a new booking
+        await firestore().collection('Bookings').add({
+            serviceId: service.id,
+            supplierId: service.supplierId,
+            serviceName: service.serviceName,
+            supplierName: service.supplierName,
+            location: service.Location,
+            servicePrice: service.servicePrice,
+            imageUrl: service.imageUrl,
+            timestamp: firestore.FieldValue.serverTimestamp(),
+            status: 'Booked',
+        });
+
+        // Verify if the service document exists before updating
+        const serviceDoc = await serviceRef.get();
+        if (!serviceDoc.exists) {
+            throw new Error("Service document not found");
+        }
+
+        // Update the service status to "Booked"
+        await serviceRef.update({ status: 'Booked' });
+
+        // 🔥 Send push notification
+        await sendPushNotification(service.supplierId, service.serviceName);
+
+        Alert.alert('Success', 'Service booked successfully!');
     } catch (error) {
-      console.error('Error booking service:', error);
-      Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
+        console.error('Error booking service:', error);
+        Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
     }
-  };
+};
+
+
+const sendPushNotification = async (supplierId: string, serviceName: string) => {
+  try {
+      const supplierDoc = await firestore().collection("Supplier").doc(supplierId).get();
+      const supplierData = supplierDoc.data();
+      const fcmToken = supplierData?.fcmToken;
+
+      if (!fcmToken) {
+          console.warn("No FCM token found for supplier:", supplierId);
+          return;
+      }
+
+      // Call Firebase Cloud Function
+      const response = await functions().httpsCallable("sendPushNotification")({
+          fcmToken,
+          serviceName,
+      });
+
+      console.log("Push notification response:", response);
+  } catch (error) {
+      console.error("Error sending push notification:", error);
+  }
+};
+
   
   
 
