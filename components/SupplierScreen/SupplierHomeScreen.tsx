@@ -55,7 +55,7 @@ const SupplierHomeScreen = () => {
           // You can store this token in Firestore under the planner's user profile
           const user = auth().currentUser;
           if (user) {
-            await firestore().collection('Users').doc(user.uid).update({
+            await firestore().collection('Supplier').doc(user.uid).set({
               fcmToken: token,
             });
           }
