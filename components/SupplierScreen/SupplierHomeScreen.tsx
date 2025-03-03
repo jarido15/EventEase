@@ -55,7 +55,7 @@ const SupplierHomeScreen = () => {
           // You can store this token in Firestore under the planner's user profile
           const user = auth().currentUser;
           if (user) {
-            await firestore().collection('Users').doc(user.uid).update({
+            await firestore().collection('Supplier').doc(user.uid).set({
               fcmToken: token,
             });
           }
@@ -73,7 +73,8 @@ const SupplierHomeScreen = () => {
       <Appbar.Header style={styles.header}>
         <Appbar.Content title="Supplier Dashboard" titleStyle={styles.headerTitle} />
         <TouchableOpacity>
-          <Avatar.Image size={40} source={{ uri: 'https://via.placeholder.com/100' }} />
+        <Avatar.Image size={40} source={require('../images/user.png')} />
+
         </TouchableOpacity>
       </Appbar.Header>
 
