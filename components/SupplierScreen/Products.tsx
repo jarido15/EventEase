@@ -5,13 +5,16 @@ import * as ImagePicker from 'react-native-image-picker';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
-
+import { Picker } from '@react-native-picker/picker';
 const Products = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
   const [servicePrice, setServicePrice] = useState('');
+  const [gcashName, setGcashName] = useState('');
+  const [gcashNumber, setGcashNumber] = useState('');
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState(''); // State for location
 
   // Function to pick an image
   const handleSelectImage = () => {
@@ -52,9 +55,9 @@ const Products = () => {
   };
 
   // Function to upload service details to Firestore
-// Function to upload service details to Firestore
 const addService = async () => {
-  if (!serviceName || !servicePrice || !description) {
+  if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber ||!servicePrice
+  ) {
     Alert.alert('Error', 'All fields are required.');
     return;
   }
@@ -78,7 +81,11 @@ const addService = async () => {
         serviceName,
         servicePrice,
         description,
+        gcashNumber,
+        gcashName,
+        location: selectedLocation, // ✅ Store location
         imageUrl,
+        status: "Available",
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
@@ -86,6 +93,7 @@ const addService = async () => {
     setServiceName('');
     setServicePrice('');
     setDescription('');
+    setSelectedLocation('');
     setImageUri(null);
   } catch (error) {
     console.error('Error adding service:', error);
@@ -119,9 +127,29 @@ const addService = async () => {
 
             <Text style={styles.label}>Service Name:</Text>
             <TextInput style={styles.input} placeholder="Enter service name" value={serviceName} onChangeText={setServiceName} />
+            <Text style={styles.label}>Location:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedLocation}
+                onValueChange={(itemValue) => setSelectedLocation(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select Location" value="" />
+                <Picker.Item label="Calapan" value="Calapan" />
+                <Picker.Item label="Pinamalayan" value="Pinamalayan" />
+                <Picker.Item label="Naujan" value="Naujan" />
+                <Picker.Item label="Victoria" value="Victoria" />
+                <Picker.Item label="Socorro" value="Socorro" />
+                <Picker.Item label="Gloria" value="Gloria" />
+              </Picker>
+            </View>
 
             <Text style={styles.label}>Service Price:</Text>
             <TextInput style={styles.input} placeholder="Enter Service price" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />
+            <Text style={styles.label}>Gcash Number:</Text>
+            <TextInput style={styles.input} placeholder="Enter Gcash Number" keyboardType="numeric" value={gcashNumber} onChangeText={setGcashNumber} />
+            <Text style={styles.label}>Gcash Name:</Text>
+            <TextInput style={styles.input} placeholder="Enter Gcash name" value={gcashName} onChangeText={setGcashName} />
 
             <Text style={styles.label}>Description:</Text>
             <TextInput
@@ -159,6 +187,17 @@ const styles = StyleSheet.create({
     margin: 20,
     padding: 15,
     backgroundColor: 'white',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    marginTop: 5,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
   },
   label: {
     fontSize: 16,

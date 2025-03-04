@@ -13,8 +13,9 @@ const ServicesInfoScreen = () => {
   const [isChecked, setIsChecked] = useState(false);
 
   const handleSubmit = () => {
-
+ 
     alert('Account Created Successfully!');
+    navigation.navigate('Suppliermain');
   };
 
   return (

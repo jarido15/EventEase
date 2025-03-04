@@ -247,6 +247,9 @@ export default function App() {
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
         <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
+
+        <Stack.Screen name="SupplierProfileScreen" component={SupplierProfileScreen} />
+
         <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
 
         <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
