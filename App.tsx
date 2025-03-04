@@ -44,6 +44,7 @@ import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
 import SupplierProfileScreen from './components/SupplierScreen/SupplierProfileScreen';
 import SupplierBookingScreen from './components/SupplierScreen/SupplierBookingScreen';
 import ClientChatScreen from './components/ClientScreens/ClientChatScreen';
+import MyEventsScreen from './components/ClientScreens/MyEvent';
 
 
 
@@ -246,14 +247,18 @@ export default function App() {
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
         <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
+
         <Stack.Screen name="SupplierProfileScreen" component={SupplierProfileScreen} />
+
+        <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
+
         <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
         <Stack.Screen name="PlannerHomeScreen" component={PlannerHomeScreen} />
         <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
         <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
-
+        
 
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
 

@@ -9,10 +9,15 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Modal,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
 import functions from "@react-native-firebase/functions";
+import auth from '@react-native-firebase/auth';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SearchScreen = () => {
   const [services, setServices] = useState([]);
@@ -24,48 +29,56 @@ const SearchScreen = () => {
     'Calapan', 'Naujan', 'Victoria', 'Socorro', 'Pola', 'Pinamalayan', 'Gloria'
   ]);
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [eventTime, setEventTime] = useState(new Date());
+  const [eventDate, setEventDate] = useState(new Date());
+  const [eventPlace, setEventPlace] = useState('');
+  const [venueType, setVenueType] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const snapshot = await firestore().collection('Supplier').get();
+        const snapshot = await firestore().collection("Supplier").get();
         let serviceList = [];
         let locationSet = new Set(locations);
-  
+
         for (let doc of snapshot.docs) {
           const supplierData = doc.data();
           locationSet.add(supplierData.Location);
-  
+
           const servicesSnapshot = await doc.ref
-            .collection('Services')
-            .orderBy('createdAt', 'desc')
+            .collection("Services")
+            .orderBy("createdAt", "desc")
             .get();
-  
+
           servicesSnapshot.forEach((serviceDoc) => {
+            const serviceData = serviceDoc.data();
             serviceList.push({
               id: serviceDoc.id,
-              supplierId: doc.id, // 🔥 Add supplierId (Supplier document ID)
-              ...serviceDoc.data(),
+              supplierId: doc.id,
+              ...serviceData,
               supplierName: supplierData.fullName,
               Location: supplierData.Location,
             });
           });
         }
-  
+
         setServices(serviceList);
         setFilteredServices(serviceList);
         setLocations([...locationSet]);
       } catch (error) {
-        console.error('Error fetching services:', error);
+        console.error("Error fetching services:", error);
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchServices();
   }, []);
-  
 
-  
   const handleSearch = (query) => {
     setSearchQuery(query);
     filterServices(query, location);
@@ -88,83 +101,149 @@ const SearchScreen = () => {
     }
 
     if (selectedLocation) {
-      filtered = filtered.filter((item) => item.Location === selectedLocation);
+      filtered = filtered.filter((item) => item.location === selectedLocation);
     }
 
     setFilteredServices(filtered);
   };
 
-  const handleBooking = async (service) => {
+  const handleBooking = (service) => {
+    // Reset form fields when booking a new service
+    resetForm();
+
+    setSelectedService(service);
+    setModalVisible(true);
+  };
+
+  const resetForm = () => {
+    setEventDate(new Date());
+    setEventTime(new Date());
+    setEventPlace('');
+    setVenueType('');
+  };
+
+  const handleSubmitBooking = async () => {
     try {
-        if (!service.supplierId) {
-            Alert.alert("Error", "Supplier ID is missing. Please try again.");
-            return;
-        }
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        Alert.alert("Error", "You must be logged in to book a service.");
+        return;
+      }
 
-        const serviceRef = firestore()
-            .collection('Supplier')
-            .doc(service.supplierId)
-            .collection('Services')
-            .doc(service.id);
+      if (!selectedService.supplierId) {
+        Alert.alert("Error", "Supplier ID is missing. Please try again.");
+        return;
+      }
 
-        // Create a new booking
-        await firestore().collection('Bookings').add({
-            serviceId: service.id,
-            supplierId: service.supplierId,
-            serviceName: service.serviceName,
-            supplierName: service.supplierName,
-            location: service.Location,
-            servicePrice: service.servicePrice,
-            imageUrl: service.imageUrl,
-            timestamp: firestore.FieldValue.serverTimestamp(),
-            status: 'Booked',
-        });
+      // Check if the service is already booked by another user at the same time
+      const existingBookingSnapshot = await firestore()
+        .collection('Bookings')
+        .where('serviceId', '==', selectedService.id)
+        .where('eventDate', '==', eventDate.toISOString().split('T')[0])
+        .where('eventTime', '==', eventTime.toISOString().split('T')[1].slice(0, 5))
+        .get();
 
-        // Verify if the service document exists before updating
-        const serviceDoc = await serviceRef.get();
-        if (!serviceDoc.exists) {
-            throw new Error("Service document not found");
-        }
+      if (!existingBookingSnapshot.empty) {
+        // If the booking already exists, show an alert and don't proceed
+        Alert.alert("Error", "This service is already booked for the selected time.");
+        return;
+      }
 
-        // Update the service status to "Booked"
-        await serviceRef.update({ status: 'Booked' });
+      // Check if the service is already booked by the current user (to avoid booking it again)
+      const userBookingSnapshot = await firestore()
+        .collection('Bookings')
+        .where('userId', '==', currentUser.uid)
+        .where('serviceId', '==', selectedService.id)
+        .get();
 
-        // 🔥 Send push notification
-        await sendPushNotification(service.supplierId, service.serviceName);
+      if (!userBookingSnapshot.empty) {
+        Alert.alert("Error", "You have already booked this service.");
+        return;
+      }
 
-        Alert.alert('Success', 'Service booked successfully!');
+      const serviceRef = firestore()
+        .collection('Supplier')
+        .doc(selectedService.supplierId)
+        .collection('Services')
+        .doc(selectedService.id);
+
+      await firestore().collection('Bookings').add({
+        userId: currentUser.uid, 
+        serviceId: selectedService.id,
+        supplierId: selectedService.supplierId,
+        serviceName: selectedService.serviceName,
+        supplierName: selectedService.supplierName,
+        location: selectedService.Location,
+        servicePrice: selectedService.servicePrice,
+        imageUrl: selectedService.imageUrl,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        status: 'Pending',
+        eventTime,
+        eventDate,
+        eventPlace,
+        venueType,
+      });
+
+      const serviceDoc = await serviceRef.get();
+      if (!serviceDoc.exists) {
+        throw new Error("Service document not found");
+      }
+
+      await serviceRef.update({ status: 'Pending' });
+
+      await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
+
+      Alert.alert('Success', 'Service booked successfully!');
+      setModalVisible(false);
     } catch (error) {
-        console.error('Error booking service:', error);
-        Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
+      console.error('Error booking service:', error);
+      Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
     }
-};
+  };
 
-
-const sendPushNotification = async (supplierId: string, serviceName: string) => {
-  try {
+  const sendPushNotification = async (supplierId, serviceName) => {
+    try {
       const supplierDoc = await firestore().collection("Supplier").doc(supplierId).get();
       const supplierData = supplierDoc.data();
       const fcmToken = supplierData?.fcmToken;
 
       if (!fcmToken) {
-          console.warn("No FCM token found for supplier:", supplierId);
-          return;
+        console.warn("No FCM token found for supplier:", supplierId);
+        return;
       }
 
-      // Call Firebase Cloud Function
       const response = await functions().httpsCallable("sendPushNotification")({
-          fcmToken,
-          serviceName,
+        fcmToken,
+        serviceName,
       });
 
       console.log("Push notification response:", response);
-  } catch (error) {
+    } catch (error) {
       console.error("Error sending push notification:", error);
-  }
-};
+    }
+  };
 
-  
-  
+  const showDatePickerHandler = () => {
+    setShowDatePicker(true);
+  };
+
+  const showTimePickerHandler = () => {
+    setShowTimePicker(true);
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setEventDate(selectedDate);
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setEventTime(selectedTime);
+    }
+  };
 
   if (loading) {
     return (
@@ -190,10 +269,11 @@ const sendPushNotification = async (supplierId: string, serviceName: string) => 
         onValueChange={(itemValue) => handleLocationFilter(itemValue)}
       >
         <Picker.Item label="All Locations" value="" />
-        {locations.map((loc) => (
-          <Picker.Item key={loc} label={loc} value={loc} />
+        {locations.map((loc, index) => (
+          <Picker.Item key={`${loc}-${index}`} label={loc} value={loc} />
         ))}
       </Picker>
+
       {filteredServices.length === 0 ? (
         <Text style={styles.noDataText}>No services available</Text>
       ) : (
@@ -208,18 +288,73 @@ const sendPushNotification = async (supplierId: string, serviceName: string) => 
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
-                <Text style={styles.price}>Price: ₱{item.servicePrice}</Text>
-                
-                {/* Book Now Button */}
-                <TouchableOpacity style={styles.bookButton} onPress={() => handleBooking(item)}>
+                <TouchableOpacity
+                  style={styles.bookButton}
+                  onPress={() => handleBooking(item)}
+                >
                   <Text style={styles.bookButtonText}>Book Now</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
-          showsVerticalScrollIndicator={false}
         />
       )}
+
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}></View>
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Event Date"
+            value={eventDate.toLocaleDateString()}
+            onFocus={showDatePickerHandler}
+          />
+          {showDatePicker && (
+            <DateTimePicker
+              value={eventDate}
+              mode="date"
+              display="default"
+              onChange={handleDateChange}
+            />
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Event Time"
+            value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            onFocus={showTimePickerHandler}
+          />
+          {showTimePicker && (
+            <DateTimePicker
+              value={eventTime}
+              mode="time"
+              display="default"
+              onChange={handleTimeChange}
+            />
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Event Place"
+            value={eventPlace}
+            onChangeText={setEventPlace}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Venue Type"
+            value={venueType}
+            onChangeText={setVenueType}
+          />
+
+          <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
+            <Text style={styles.submitButtonText}>Submit Booking</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -307,25 +442,62 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: 14,
-    color: '#777',
-    marginTop: 6,
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#555',
     marginTop: 8,
   },
   bookButton: {
-    marginTop: 12,
     backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
+    paddingVertical: 12,
+    borderRadius: 5,
+    marginTop: 20,
   },
   bookButtonText: {
-    color: '#fff',
     fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    margin: 40,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
     fontWeight: 'bold',
   },
 });
