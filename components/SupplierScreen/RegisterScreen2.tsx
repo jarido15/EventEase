@@ -22,6 +22,7 @@ const SupplierRegister2 = ({ navigation }) => {
       const user = auth().currentUser; // Get the logged-in user
       if (!user) {
         Alert.alert('Error', 'User not found. Please sign in again.');
+ 
         return;
       }
   
