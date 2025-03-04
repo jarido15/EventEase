@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Avatar, Card, Appbar, Divider } from 'react-native-paper';
@@ -48,23 +49,30 @@ const SupplierHomeScreen = () => {
   
       // Request permission and get FCM token
       const setupNotifications = async () => {
-        await requestUserPermission();
-        const token = await getFCMToken();
-        if (token) {
-          console.log('FCM Token:', token);
-          // You can store this token in Firestore under the planner's user profile
-          const user = auth().currentUser;
-          if (user) {
-            await firestore().collection('Supplier').doc(user.uid).set({
-              fcmToken: token,
-            });
+        try {
+          await requestUserPermission();
+          const token = await getFCMToken();
+  
+          if (token) {
+            console.log('FCM Token:', token);
+            
+            // Store this token in Firestore under the planner's user profile
+            const user = auth().currentUser;
+            if (user) {
+              await firestore().collection('Supplier').doc(user.uid).set({
+                fcmToken: token,
+              });
+            }
           }
+        } catch (error) {
+          console.error('Error fetching FCM token:', error);
         }
       };
   
       setupNotifications();
     }, [])
   );
+  
   
 
   return (

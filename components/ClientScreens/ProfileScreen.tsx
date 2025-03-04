@@ -1,24 +1,28 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <View style={styles.profilecontainer}>
-      {/* <Text style={styles.title}>👤 Profile Screen</Text> */}
       </View>
-      <TouchableOpacity style={styles.item}>
+
+      {/* My Event Button - Navigates to MyEventScreen */}
+      <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('MyEventScreen')}>
         <Text style={styles.text}>📅 My Event</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.item}>
         <Text style={styles.text}>⭐ Favourite Supplier</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.item}>
         <Text style={styles.text}>💳 Payment and Booking</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={styles.item}>
         <Text style={styles.text}>🚪 Logout</Text>
       </TouchableOpacity>
@@ -32,10 +36,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  profilecontainer:{
+  profilecontainer: {
     backgroundColor: '#5392DD',
     width: '115%',
-    height:'45%',
+    height: '45%',
     alignItems: 'center',
     alignSelf: 'center',
     borderBottomRightRadius: 55,
@@ -46,12 +50,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 5,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
   item: {
     backgroundColor: '#fff',
     padding: 15,
@@ -59,6 +57,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     height: 80,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
