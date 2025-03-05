@@ -88,7 +88,7 @@ function BottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom
@@ -143,7 +143,7 @@ function SupplierBottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70,
           paddingBottom: 10, 
@@ -197,7 +197,7 @@ function PlannerBottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom

@@ -1,3 +1,5 @@
+/* eslint-disable quotes */
+/* eslint-disable quotes */
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -16,6 +18,7 @@ const MyEventsScreen = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
+  const [completedServices, setCompletedServices] = useState({});
   const user = auth().currentUser;
   const navigation = useNavigation();
 
@@ -26,44 +29,99 @@ const MyEventsScreen = () => {
       return;
     }
 
-    console.log("Current User UID:", user.uid); // Log the UID to check
-
     const fetchEvents = async () => {
       try {
         const snapshot = await firestore()
-          .collection("Client")
+          .collection("Clients")
           .doc(user.uid)
           .collection("MyEvent")
-          .orderBy("date", "asc")
           .get();
 
         if (snapshot.empty) {
           console.log("No events found for this user.");
-          setEvents([]); // No events, set an empty array
+          setEvents([]);
         } else {
           const eventList = snapshot.docs.map((doc) => {
             const data = doc.data();
-            console.log("Event Date Type:", data.date); // Log event date type for debugging
             return {
               id: doc.id,
-              eventDate: data.date?.toDate() || new Date(), // Safely handle the date field
-              eventImage: data.imageUrl || "https://via.placeholder.com/300", // Fallback image if none exists
-              eventName: data.name || "Unnamed Event", // Default event name if none exists
-              eventTime: data.time || "Unknown Time", // Default time if none exists
+              eventDate: data.date?.toDate() || new Date(),
+              eventImage: data.eventImage, // Fallback for missing images
+              eventName: data.eventName || "Unnamed Event",
+              eventTime: data.eventTime || "Unknown Time",
+              services: data.selectedServices || [],
+              status: data.status || "Upcoming",
             };
           });
-          console.log("Fetched Events:", eventList); // Log the fetched events
-          setEvents(eventList); // Update state with fetched events
+          
+          setEvents(eventList);
         }
       } catch (error) {
         console.error("Error fetching user events:", error);
       } finally {
-        setLoading(false); // Stop loading indicator once fetch is complete
+        setLoading(false);
       }
     };
 
     fetchEvents();
-  }, [user?.uid]); // Dependency array, only fetch when the user UID changes
+  }, [user?.uid]);
+
+  const handleServiceCheck = (eventId, serviceIndex, isChecked) => {
+    setCompletedServices((prev) => {
+      const updatedServices = { ...prev };
+      if (!updatedServices[eventId]) updatedServices[eventId] = [];
+      updatedServices[eventId][serviceIndex] = isChecked;
+      return updatedServices;
+    });
+  };
+
+  const handleServiceComplete = async (eventId) => {
+    const event = events.find((item) => item.id === eventId);
+    const allServicesCompleted = event.services.every(
+      (_, index) => completedServices[eventId]?.[index]
+    );
+
+    if (allServicesCompleted) {
+      await firestore()
+        .collection("Clients")
+        .doc(user.uid)
+        .collection("MyEvent")
+        .doc(eventId)
+        .update({ status: "Ongoing" });
+
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, status: "Ongoing" } : event
+        )
+      );
+
+      setSelectedTab("Ongoing");
+    } else {
+      alert("Please complete all services before marking as complete.");
+    }
+  };
+
+  const handleMoveToPrevious = async (eventId) => {
+    try {
+      await firestore()
+        .collection("Clients")
+        .doc(user.uid)
+        .collection("MyEvent")
+        .doc(eventId)
+        .update({ status: "Previous" });
+
+      setEvents((prevEvents) =>
+        prevEvents.map((event) =>
+          event.id === eventId ? { ...event, status: "Previous" } : event
+        )
+      );
+
+      setSelectedTab("Previous");
+    } catch (error) {
+      console.error("Error updating event status:", error);
+      alert("Failed to update event. Try again.");
+    }
+  };
 
   if (loading) {
     return (
@@ -74,19 +132,10 @@ const MyEventsScreen = () => {
     );
   }
 
-  const now = new Date();
-  const filteredEvents = events.filter((item) => {
-    const eventDate = new Date(item.eventDate); // Ensure this is a Date object
-    console.log("Comparing eventDate:", eventDate, "with now:", now); // Log the comparison
-    if (selectedTab === "Upcoming") return eventDate > now;
-    if (selectedTab === "Ongoing") return eventDate.toDateString() === now.toDateString();
-    if (selectedTab === "Previous") return eventDate < now;
-    return true;
-  });
+  const filteredEvents = events.filter((event) => event.status === selectedTab);
 
   return (
     <View style={styles.container}>
-      {/* Header with Back Button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Image source={require("../images/back.png")} style={styles.backIcon} />
@@ -94,15 +143,11 @@ const MyEventsScreen = () => {
         <Text style={styles.headerText}>My Events</Text>
       </View>
 
-      {/* Tabs for Filtering */}
       <View style={styles.tabContainer}>
         {["Upcoming", "Ongoing", "Previous"].map((tab) => (
           <TouchableOpacity
             key={tab}
-            style={[
-              styles.tabButton,
-              selectedTab === tab && styles.activeTab,
-            ]}
+            style={[styles.tabButton, selectedTab === tab && styles.activeTab]}
             onPress={() => setSelectedTab(tab)}
           >
             <Text style={[styles.tabText, selectedTab === tab && styles.activeTabText]}>
@@ -122,14 +167,68 @@ const MyEventsScreen = () => {
             const eventDate = new Date(item.eventDate);
             return (
               <View style={styles.card}>
-                {/* Event Image */}
-                <Image source={{ uri: item.eventImage }} style={styles.eventImage} resizeMode="cover" />
+            <Image
+  source={
+    item.eventImage ? { uri: item.eventImage } : require("../images/upevent.png")
+  }
+  style={styles.eventImage}
+  resizeMode="cover"
+/>
 
-                {/* Event Details */}
+
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventName}>{item.eventName}</Text>
                   <Text style={styles.eventDate}>📅 {eventDate.toDateString()}</Text>
                   <Text style={styles.eventTime}>⏰ {item.eventTime}</Text>
+
+                  <View style={styles.servicesContainer}>
+  <Text style={styles.servicesTitle}>Services:</Text>
+  {item.services.length === 0 ? (
+    <Text style={styles.noServices}>No services available.</Text>
+  ) : selectedTab === "Upcoming" ? (
+    item.services.map((service, index) => (
+      <View key={index} style={styles.serviceItem}>
+        <TouchableOpacity
+          onPress={() =>
+            handleServiceCheck(item.id, index, !(completedServices[item.id]?.[index]))
+          }
+        >
+          <Image
+            source={
+              completedServices[item.id]?.[index]
+                ? require("../images/checkedbox.png")
+                : require("../images/Uncheckedbox.png")
+            }
+            style={styles.checkImage}
+          />
+        </TouchableOpacity>
+        <Text style={styles.serviceText}>{service}</Text>
+      </View>
+    ))
+  ) : (
+    item.services.map((service, index) => (
+      <Text key={index} style={styles.serviceText}>• {service}</Text>
+    ))
+  )}
+</View>
+
+                  {selectedTab === "Upcoming" && (
+                    <TouchableOpacity
+                      style={styles.completeButton}
+                      onPress={() => handleServiceComplete(item.id)}
+                    >
+                      <Text style={styles.completeButtonText}>Service Complete</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {selectedTab === "Ongoing" && (
+                    <TouchableOpacity
+                      style={[styles.completeButton, { backgroundColor: "green" }]}
+                      onPress={() => handleMoveToPrevious(item.id)}
+                    >
+                      <Text style={styles.completeButtonText}>Event Complete</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );
@@ -249,6 +348,29 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 5,
   },
+  servicesContainer: {
+    marginTop: 15,
+  },
+  servicesTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+  },
+  serviceItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
+  serviceText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#333",
+  },
+  noServices: {
+    fontSize: 16,
+    color: "#777",
+    marginTop: 8,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -258,6 +380,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: "#555",
+  },
+  checkImage: {
+    width: 24,
+    height: 24,
+  },
+  completeButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: "center",
+  },
+  completeButtonText: {
+    fontSize: 16,
+    color: "#fff",
+    fontWeight: "bold",
   },
 });
 
