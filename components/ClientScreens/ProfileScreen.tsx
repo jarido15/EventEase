@@ -61,7 +61,7 @@ const ProfileScreen = () => {
         <Text style={styles.text}>⭐ Favourite Supplier</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('BookingScreen')}>
         <Text style={styles.text}>💳 Payment and Booking</Text>
       </TouchableOpacity>
 
