@@ -44,8 +44,12 @@ import SupplierChatScreen from './components/SupplierScreen/SupplierChatScreen';
 import SupplierProfileScreen from './components/SupplierScreen/SupplierProfileScreen';
 import SupplierBookingScreen from './components/SupplierScreen/SupplierBookingScreen';
 import ClientChatScreen from './components/ClientScreens/ClientChatScreen';
+
+import EditServiceScreen from './components/PlannerScreen/PlannerEditService';
+
 import MyEventsScreen from './components/ClientScreens/MyEvent';
 import BookingScreen from './components/ClientScreens/BookingScreen';
+
 
 
 
@@ -57,6 +61,11 @@ const profileIcon = require('./components/images/profile.png');
 const productIcon = require('./components/images/order.png');
 const messageIcon = require('./components/images/messenger.png');
 const bookingIcon = require('./components/images/booking.png');
+const plannerHome = require('./components/images/planner-home.png');
+const plannerAdd = require('./components/images/add.png');
+const plannerChat = require('./components/images/telegram.png');
+const plannerUser = require('./components/images/planner-user.png');
+
 
 
 // Create Navigators
@@ -126,9 +135,9 @@ function SupplierBottomTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused }) => {
           let iconSource;
-          if (route.name === 'Home') iconSource = homeIcon;
-          else if (route.name === 'Products') iconSource = productIcon;
-          else if (route.name === 'Chats') iconSource = messageIcon;
+          if (route.name === 'Home') iconSource = plannerHome;
+          else if (route.name === 'Products') iconSource = plannerAdd;
+          else if (route.name === 'Chats') iconSource = plannerChat;
           else if (route.name === 'Booking') iconSource = bookingIcon;
 
           return (
@@ -180,10 +189,10 @@ function PlannerBottomTabs() {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused }) => {
           let iconSource;
-          if (route.name === 'Home') iconSource = homeIcon;
-          else if (route.name === 'Products') iconSource = productIcon;
-          else if (route.name === 'Chats') iconSource = messageIcon;
-          else if (route.name === 'Profile') iconSource = profileIcon;
+          if (route.name === 'Home') iconSource = plannerHome;
+          else if (route.name === 'Products') iconSource = plannerAdd;
+          else if (route.name === 'Chats') iconSource = plannerChat;
+          else if (route.name === 'Profile') iconSource = plannerUser;
 
           return (
             <Image
@@ -256,10 +265,14 @@ export default function App() {
         <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
         <Stack.Screen name="PlannerHomeScreen" component={PlannerHomeScreen} />
         <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
+        <Stack.Screen name="EditService" component={EditServiceScreen} options={{ title: 'Edit Service' }} />
         <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
+
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
+
+
 
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
 

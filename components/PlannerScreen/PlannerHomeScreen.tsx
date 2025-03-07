@@ -1,12 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Avatar, Card } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import auth from '@react-native-firebase/auth';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
-import { SectionList } from 'react-native';
-import { requestUserPermission, getFCMToken } from '../Notification/notificationService';
+import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
 
+import auth from '@react-native-firebase/auth';
 const Events = [
   { id: '1', name: 'Birthday Party', clientName: 'John Doe', date: '2025-03-10' },
   { id: '2', name: 'Anniversary Celebration', clientName: 'Emma Smith', date: '2025-06-15' },
@@ -14,33 +13,36 @@ const Events = [
 
 const PlannerHomeScreen = () => {
   const [services, setServices] = useState([]);
+  const [myServices, setMyServices] = useState([]);
+  const navigation = useNavigation(); 
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
+    { key: 'supplier', title: 'Supplier' }, 
+    { key: 'myServices', title: 'My Services' },
+  ]);
+  const handleIndexChange = (newIndex: number) => {
+    console.log("Tab changed to:", newIndex); // Debugging log
+    setIndex(newIndex);
+  };
+  
 
-
-  // Function to fetch services
+  // Fetch services from Supplier Collection
   const fetchServices = async () => {
     setLoading(true);
     try {
-      // Step 1: Fetch all supplier documents
       const suppliersSnapshot = await firestore().collection('Supplier').get();
-  
       let servicesList = [];
-  
-      // Step 2: Iterate over each supplier and fetch their services
+
       for (const supplierDoc of suppliersSnapshot.docs) {
         const servicesSnapshot = await supplierDoc.ref.collection('Services').get();
-  
         const supplierServices = servicesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
-  
-        // Step 3: Add fetched services to the list
         servicesList = servicesList.concat(supplierServices);
       }
-  
-      // Step 4: Set the services state
+
       setServices(servicesList);
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -49,68 +51,69 @@ const PlannerHomeScreen = () => {
     }
   };
 
+  // Fetch services from Planner Collection
+  const fetchMyServices = async () => {
+    setLoading(true);
+    try {
+      const user = auth().currentUser;
+      if (!user) return;
 
+      const servicesSnapshot = await firestore()
+        .collection('Planner')
+        .doc(user.uid)
+        .collection('PlannerServices')
+        .get();
 
+      const myServicesList = servicesSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
 
-const sections = [
-  { title: 'Upcoming Events', data: Events },
-  { title: 'Services', data: services },
-];
-
-<SectionList
-  sections={sections}
-  keyExtractor={(item, index) => item.id || index.toString()}
-  renderSectionHeader={({ section: { title } }) => (
-    <Text style={{ fontSize: 18, fontWeight: 'bold', margin: 10 }}>{title}</Text>
-  )}
-  renderItem={({ item }) => {
-    if (item.clientName) {
-      // Render event card
-      return (
-        <Card style={{ margin: 10, padding: 20, borderRadius: 10, backgroundColor: '#f9c2ff' }}>
-          <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 5 }}>{item.name}</Text>
-          <Text style={{ fontSize: 16, color: '#555' }}>Client: {item.clientName}</Text>
-          <Text style={{ fontSize: 16, color: '#555' }}>Date: {item.date}</Text>
-        </Card>
-      );
-    } else {
-      // Render service card
-      return (
-        <Card style={{ margin: 10 }}>
-          <Card.Cover source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} />
-          <Card.Content style={{ marginTop: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>{item.serviceName}</Text>
-            <Text>Price: Php {item.servicePrice}</Text>
-          </Card.Content>
-        </Card>
-      );
+      setMyServices(myServicesList);
+    } catch (error) {
+      console.error('Error fetching planner services:', error);
+    } finally {
+      setLoading(false);
     }
-  }}
-  ListEmptyComponent={
-    loading ? (
-      <ActivityIndicator size="large" color="#3498db" style={{ marginTop: 20 }} />
-    ) : (
-      <Text style={{ textAlign: 'center', marginTop: 20, fontSize: 16, color: 'gray' }}>
-        No services added yet.
-      </Text>
-    )
-  }
-/>;
-
+  };
 
 
   
-  
-  // Use useFocusEffect to refresh data when returning to this screen
+
   useFocusEffect(
     useCallback(() => {
-      fetchServices(); // Remove the `if (user)` check
-
-      
+      fetchServices();
+      fetchMyServices();
     }, [])
   );
-  
 
+  const renderServiceCard = ({ item }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('EditService', { service: item })} // ✅ No more error
+    >
+      <Card style={{ margin: 10 }}>
+        <Card.Cover source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} />
+        <Card.Content style={{ marginTop: 10 }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>{item.serviceName}</Text>
+          <Text>Price: Php {item.servicePrice}</Text>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
+  );
+
+  // Services Tab
+  const ServicesTab = () => (
+    loading ? <ActivityIndicator size="large" color="#3498db" style={{ marginTop: 20 }} />
+    : services.length > 0 ? <FlatList data={services} keyExtractor={(item) => item.id} renderItem={renderServiceCard} />
+    : <Text style={{ textAlign: 'center', marginTop: 20, fontSize: 16, color: 'gray' }}>No services added yet.</Text>
+  );
+
+  // My Services Tab
+  const MyServicesTab = () => (
+    loading ? <ActivityIndicator size="large" color="#3498db" style={{ marginTop: 20 }} />
+    : myServices.length > 0 ? <FlatList data={myServices} keyExtractor={(item) => item.id} renderItem={renderServiceCard} />
+    : <Text style={{ textAlign: 'center', marginTop: 20, fontSize: 16, color: 'gray' }}>No planner services added yet.</Text>
+  );
   return (
     <View style={{ flex: 1 }}>
       {/* Custom Header */}
@@ -120,54 +123,50 @@ const sections = [
           <Avatar.Image size={40} source={{ uri: 'https://via.placeholder.com/100' }} />
         </TouchableOpacity>
       </View>
+
+      {/* Upcoming Events Section */}
+      <Text style={{ fontSize: 18, fontWeight: 'bold', margin: 10 }}>Upcoming Events</Text>
+      <View>
+ 
   
-      {/* Render all sections in a single FlatList */}
-      <FlatList
-        ListHeaderComponent={
-          <View>
-            {/* Upcoming Events Section */}
-            <Text style={{ fontSize: 18, fontWeight: 'bold', margin: 10 }}>Upcoming Events</Text>
-            <FlatList
-              horizontal
-              data={Events}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => (
-                <Card style={{ margin: 10, padding: 20, borderRadius: 10, backgroundColor: '#f9c2ff' }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 5 }}>{item.name}</Text>
-                  <Text style={{ fontSize: 16, color: '#555' }}>Client: {item.clientName}</Text>
-                  <Text style={{ fontSize: 16, color: '#555' }}>Date: {item.date}</Text>
-                </Card>
-              )}
-            />
-            <Text style={{ fontSize: 18, fontWeight: 'bold', margin: 10 }}>Services</Text>
-          </View>
-        }
-        data={services}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <Card style={{ margin: 10 }}>
-            <Card.Cover source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} />
-            <Card.Content style={{ marginTop: 10 }}>
-              {item.serviceName && (
-                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>{item.serviceName}</Text>
-              )}
-              {item.servicePrice && <Text>Price: Php {item.servicePrice}</Text>}
-            </Card.Content>
-          </Card>
-        )}
-        ListEmptyComponent={
-          loading ? (
-            <ActivityIndicator size="large" color="#3498db" style={{ marginTop: 20 }} />
-          ) : (
-            <Text style={{ textAlign: 'center', marginTop: 20, fontSize: 16, color: 'gray' }}>
-              No services added yet.
-            </Text>
-          )
-        }
-      />
+  <FlatList
+    horizontal
+    data={Events}
+    keyExtractor={(item) => item.id}
+    contentContainerStyle={{ paddingHorizontal: 10, paddingVertical: 5 }} // Reduce extra spacing
+    showsHorizontalScrollIndicator={false} // Hide scroll indicator
+    renderItem={({ item }) => (
+      <Card style={{ marginRight: 10, borderRadius: 10, width: 200 }}> 
+        <Card.Content>
+          <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{item.name}</Text>
+          <Text style={{ fontSize: 14, color: '#555' }}>Client: {item.clientName}</Text>
+          <Text style={{ fontSize: 14, color: '#555' }}>Date: {item.date}</Text>
+        </Card.Content>
+      </Card>
+    )}
+  />
+</View>
+
+
+      {/* Tab View */}
+      <TabView
+  navigationState={{ index, routes }}
+  renderScene={SceneMap({
+    supplier: ServicesTab, 
+    myServices: MyServicesTab,
+  })}
+  onIndexChange={handleIndexChange}
+  initialLayout={{ width: Dimensions.get('window').width }}
+  renderTabBar={props => (
+    <TabBar 
+      {...props} 
+      indicatorStyle={{ display: 'none' }} // Hides the indicator
+    />
+  )}
+/>;
+
     </View>
   );
-  
 };
 
 export default PlannerHomeScreen;

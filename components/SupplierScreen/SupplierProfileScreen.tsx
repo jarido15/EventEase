@@ -21,6 +21,16 @@ const SupplierProfileScreen = () => {
   const [editData, setEditData] = useState({});
   const user = auth().currentUser;
   const navigation = useNavigation();
+  useEffect(() => {
+    const user = auth().currentUser;
+    if (user) {
+      console.log('Current User ID:', user.uid);
+    } else {
+      console.log('No user is logged in');
+    }
+  }, []);
+  
+  
 
   useEffect(() => {
     if (user) {
@@ -60,13 +70,26 @@ const SupplierProfileScreen = () => {
   };
 
   const handleLogout = async () => {
+    const user = auth().currentUser; // Ensure we get the latest user state
+    if (!user) {
+      Alert.alert('Error', 'No user is currently signed in.');
+      return;
+    }
+  
     try {
       await auth().signOut();
-      navigation.replace('LoginScreen');
+      setProfile(null);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'SupplierLogin' }],
+      });
     } catch (error) {
       console.error('Logout error:', error);
+      Alert.alert('Error', 'Failed to log out. Please try again.');
     }
   };
+  
+  
 
   if (loading) {
     return (
@@ -103,12 +126,12 @@ const SupplierProfileScreen = () => {
       </TouchableOpacity>
 
       {/* Edit Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      {/* <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
             {Object.keys(profile).map((key) => (
-              key !== 'email' && (
+              (
                 <TextInput
                   key={key}
                   style={styles.input}
@@ -126,7 +149,7 @@ const SupplierProfileScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+      </Modal> */}
     </ScrollView>
   );
 };
