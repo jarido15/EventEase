@@ -1,4 +1,9 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
+
+
+
+import React, { useState, useCallback } from 'react';
 
 import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Avatar, Card, Appbar, Divider } from 'react-native-paper';
@@ -52,6 +57,7 @@ const [historyCount, setHistoryCount] = useState(0);
     if (user) {
       fetchCounts();
   
+
       // Set up a real-time listener
       const unsubscribe = firestore()
         .collection('Supplier')
@@ -69,6 +75,29 @@ const [historyCount, setHistoryCount] = useState(0);
           console.error('Error fetching services:', error);
           setLoading(false);
         });
+
+      // Request permission and get FCM token
+      const setupNotifications = async () => {
+        try {
+          await requestUserPermission();
+          const token = await getFCMToken();
+  
+          if (token) {
+            console.log('FCM Token:', token);
+            
+            // Store this token in Firestore under the planner's user profile
+            const user = auth().currentUser;
+            if (user) {
+              await firestore().collection('Supplier').doc(user.uid).set({
+                fcmToken: token,
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching FCM token:', error);
+        }
+      };
+
   
       // Cleanup listener on unmount
       return () => unsubscribe();
@@ -76,6 +105,7 @@ const [historyCount, setHistoryCount] = useState(0);
   }, [user]);
   
   
+
   const fetchCounts = async () => {
     try {
       // Fetch total number of services
@@ -98,6 +128,7 @@ const [historyCount, setHistoryCount] = useState(0);
       console.error('Error fetching counts:', error);
     }
   };
+
   return (
     <View style={styles.container}>
       {/* App Header */}
