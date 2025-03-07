@@ -23,28 +23,35 @@ const HomeScreen = ({ navigation }) => {
       const user = auth().currentUser;
       if (user) {
         try {
-          const userDocRef = firestore().collection('Clients').doc(user.uid);
+          const userDocRef = firestore().collection("Clients").doc(user.uid);
           const userDoc = await userDocRef.get();
           if (userDoc.exists) {
             setFullName(userDoc.data().fullName);
           }
-
-          const eventsSnapshot = await userDocRef.collection('MyEvent').get();
+  
+          // Fetch only events with "Upcoming" status
+          const eventsSnapshot = await userDocRef
+            .collection("MyEvent")
+            .where("status", "==", "Upcoming") // Filter for Upcoming events only
+            .get();
+  
           const fetchedEvents = eventsSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
             eventDate: doc.data().eventDate,
             venueType: doc.data().venueType,
           }));
+  
           setEvents(fetchedEvents);
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error("Error fetching user data:", error);
         }
       }
     };
-
+  
     fetchUserData();
   }, []);
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -84,7 +91,7 @@ const HomeScreen = ({ navigation }) => {
               renderItem={({ item }) => (
                 <View style={styles.eventCard} key={item.id}>
                   <Image
-                    source={item.eventImage ? { uri: item.eventImage } : require('../images/defaultEvent.jpg')}
+                    source={item.eventImage ? { uri: item.eventImage } : require('../images/upevent.png')}
                     style={styles.eventImage}
                   />
                   <View style={styles.eventInfo}>

@@ -48,6 +48,7 @@ import ClientChatScreen from './components/ClientScreens/ClientChatScreen';
 import EditServiceScreen from './components/PlannerScreen/PlannerEditService';
 
 import MyEventsScreen from './components/ClientScreens/MyEvent';
+import BookingScreen from './components/ClientScreens/BookingScreen';
 
 
 
@@ -97,7 +98,7 @@ function BottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom
@@ -152,7 +153,7 @@ function SupplierBottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70,
           paddingBottom: 10, 
@@ -206,7 +207,7 @@ function PlannerBottomTabs() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: false, // Hide text labels if needed
+        tabBarShowLabel: true, // Hide text labels if needed
         tabBarStyle: {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom
@@ -269,7 +270,8 @@ export default function App() {
         <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
 
-        
+        <Stack.Screen name="BookingScreen" component={BookingScreen} />
+
 
 
         <Stack.Screen name="CreateEvent" component={CreateEvent} />

@@ -87,6 +87,7 @@ const CreateEvent = ({ navigation }) => {
           selectedServices,
           eventImage: imageUrl, // Save the image URL
           createdAt: firestore.FieldValue.serverTimestamp(),
+          status: 'Upcoming',
         });
 
       Alert.alert('Success', 'Event created successfully!');

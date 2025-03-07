@@ -1,3 +1,4 @@
+/* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -34,7 +35,10 @@ const SearchScreen = () => {
   const [eventTime, setEventTime] = useState(new Date());
   const [eventDate, setEventDate] = useState(new Date());
   const [eventPlace, setEventPlace] = useState('');
+  const [referenceNumber, setreferenceNumber] = useState('');
   const [venueType, setVenueType] = useState('');
+  const [eventName, seteventName] = useState('');
+  const [serviceName, setserviceName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
@@ -125,50 +129,87 @@ const SearchScreen = () => {
   const handleSubmitBooking = async () => {
     try {
       const currentUser = auth().currentUser;
+      console.log("Current User:", currentUser);  // Log the current user
+  
       if (!currentUser) {
         Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
-
+  
       if (!selectedService.supplierId) {
         Alert.alert("Error", "Supplier ID is missing. Please try again.");
         return;
       }
-
+  
+      const trimmedEventName = eventName.trim(); // Trim to avoid extra spaces
+  
+      console.log("Searching for upcoming events with name:", trimmedEventName); // Log event name being searched
+  
+      // Query for all events with the status "Upcoming" in MyEvent subcollection
+      const myEventSnapshot = await firestore()
+        .collection("Clients")
+        .doc(currentUser.uid)
+        .collection("MyEvent")
+        .where("status", "==", "Upcoming")
+        .get({ source: "server" }); // Force fresh fetch from Firestore
+  
+      // Log the fetched documents to debug
+      console.log("MyEvent Query Results:", myEventSnapshot.docs.map(doc => doc.data()));
+  
+      if (myEventSnapshot.empty) {
+        Alert.alert("Error", "No 'Upcoming' event found for this booking.");
+        return;
+      }
+  
+      // Filter events that match the eventName
+      const matchingEvent = myEventSnapshot.docs.find(doc => {
+        const event = doc.data();
+        return event.eventName.trim() === trimmedEventName; // Ensure both event names match
+      });
+  
+      if (!matchingEvent) {
+        Alert.alert("Error", `No matching event found with the name: ${trimmedEventName}`);
+        return;
+      }
+  
+      const myEventDoc = matchingEvent.data();
+      console.log("Matching event found:", myEventDoc); // Log the matching event
+  
+      // Proceed with further checks if the event exists in MyEvent subcollection
       // Check if the service is already booked by another user at the same time
       const existingBookingSnapshot = await firestore()
-        .collection('Bookings')
-        .where('serviceId', '==', selectedService.id)
-        .where('eventDate', '==', eventDate.toISOString().split('T')[0])
-        .where('eventTime', '==', eventTime.toISOString().split('T')[1].slice(0, 5))
+        .collection("Bookings")
+        .where("serviceId", "==", selectedService.id)
+        .where("eventDate", "==", eventDate.toISOString().split("T")[0])
+        .where("eventTime", "==", eventTime.toISOString().split("T")[1].slice(0, 5))
         .get();
-
+  
       if (!existingBookingSnapshot.empty) {
-        // If the booking already exists, show an alert and don't proceed
         Alert.alert("Error", "This service is already booked for the selected time.");
         return;
       }
-
-      // Check if the service is already booked by the current user (to avoid booking it again)
+  
+      // Check if the current user already booked this service
       const userBookingSnapshot = await firestore()
-        .collection('Bookings')
-        .where('userId', '==', currentUser.uid)
-        .where('serviceId', '==', selectedService.id)
+        .collection("Bookings")
+        .where("uid", "==", currentUser.uid)
+        .where("serviceId", "==", selectedService.id)
         .get();
-
+  
       if (!userBookingSnapshot.empty) {
         Alert.alert("Error", "You have already booked this service.");
         return;
       }
-
+  
       const serviceRef = firestore()
-        .collection('Supplier')
+        .collection("Supplier")
         .doc(selectedService.supplierId)
-        .collection('Services')
+        .collection("Services")
         .doc(selectedService.id);
-
-      await firestore().collection('Bookings').add({
-        userId: currentUser.uid, 
+  
+      // Proceed to book the service
+      await firestore().collection("Bookings").add({
+        uid: currentUser.uid,
         serviceId: selectedService.id,
         supplierId: selectedService.supplierId,
         serviceName: selectedService.serviceName,
@@ -177,30 +218,36 @@ const SearchScreen = () => {
         servicePrice: selectedService.servicePrice,
         imageUrl: selectedService.imageUrl,
         timestamp: firestore.FieldValue.serverTimestamp(),
-        status: 'Pending',
+        status: "Pending",
         eventTime,
         eventDate,
         eventPlace,
         venueType,
+        referenceNumber,
+        eventName,
       });
-
+  
+      // Update the service status to Pending
       const serviceDoc = await serviceRef.get();
       if (!serviceDoc.exists) {
         throw new Error("Service document not found");
       }
-
-      await serviceRef.update({ status: 'Pending' });
-
+  
+      await serviceRef.update({ status: "Pending" });
+  
+      // Send a push notification to the supplier
       await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
-
-      Alert.alert('Success', 'Service booked successfully!');
+  
+      Alert.alert("Success", "Service booked successfully!");
       setModalVisible(false);
     } catch (error) {
-      console.error('Error booking service:', error);
-      Alert.alert('Error', error.message || 'Failed to book the service. Please try again.');
+      console.error("Error booking service:", error);
+      Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
-
+  
+  
+  
   const sendPushNotification = async (supplierId, serviceName) => {
     try {
       const supplierDoc = await firestore().collection("Supplier").doc(supplierId).get();
@@ -245,6 +292,8 @@ const SearchScreen = () => {
     }
   };
 
+  
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -288,6 +337,7 @@ const SearchScreen = () => {
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.description}> GCash Number: {item.gcashNumber}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
                   onPress={() => handleBooking(item)}
@@ -339,6 +389,13 @@ const SearchScreen = () => {
 
           <TextInput
             style={styles.input}
+            placeholder="Enter Event Name"
+            value={eventName}
+            onChangeText={seteventName}
+          />
+
+          <TextInput
+            style={styles.input}
             placeholder="Enter Event Place"
             value={eventPlace}
             onChangeText={setEventPlace}
@@ -348,6 +405,29 @@ const SearchScreen = () => {
             placeholder="Enter Venue Type"
             value={venueType}
             onChangeText={setVenueType}
+          />
+           <Text style={styles.label}>Select Event Category:</Text>
+    <Picker
+      selectedValue={serviceName}
+      style={styles.picker1}
+      onValueChange={(itemValue) => setserviceName(itemValue)}
+    >
+      <Picker.Item label="Select Category" value="" />
+      <Picker.Item label="Food and Beverage" value="Food and Beverage" />
+      <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
+      <Picker.Item label="Entertainment" value="Entertainment" />
+      <Picker.Item label="Decor and Styling" value="Decor and Styling" />
+      <Picker.Item label="Photography and Videography" value="Photography and Videography" />
+      <Picker.Item label="Event and Rentals" value="Event and Rentals" />
+      <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
+      <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
+    </Picker>
+
+          <TextInput
+            style={styles.input}
+            placeholder="Enter GCash Reference Number"
+            value={referenceNumber}
+            onChangeText={setreferenceNumber}
           />
 
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
@@ -390,6 +470,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#5392DD',
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 10,
+  },
+  picker1: {
+    height: 50,
+    backgroundColor: '#fff',
+    borderColor: '#5392DD',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
   },
   picker: {
     height: 50,
