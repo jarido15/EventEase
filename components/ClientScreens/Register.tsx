@@ -97,14 +97,14 @@ const Register = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Enter your full name"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={fullName}
                 onChangeText={setFullName}
               />
               <TextInput
                 style={styles.input}
                 placeholder="Enter your mobile number"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={mobileNumber}
                 onChangeText={setMobileNumber}
                 keyboardType="number-pad"
@@ -112,7 +112,7 @@ const Register = ({ navigation }) => {
                  <TextInput
                 style={styles.input}
                 placeholder="Enter your address"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={Address}
                 onChangeText={setAddress}
                 keyboardType="ascii-capable"
@@ -124,7 +124,7 @@ const Register = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Enter your email"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -132,7 +132,7 @@ const Register = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Enter your password"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -140,7 +140,7 @@ const Register = ({ navigation }) => {
               <TextInput
                 style={styles.input}
                 placeholder="Confirm your password"
-                placeholderTextColor="#888"
+                placeholderTextColor="#000"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry
