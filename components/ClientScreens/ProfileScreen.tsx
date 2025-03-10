@@ -57,7 +57,7 @@ const ProfileScreen = () => {
         <Text style={styles.text}>📅 My Event</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={() => navigation.navigate('FavoriteScreen')}>
         <Text style={styles.text}>⭐ Favourite Supplier</Text>
       </TouchableOpacity>
 

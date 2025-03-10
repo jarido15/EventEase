@@ -41,6 +41,9 @@ const SearchScreen = () => {
   const [serviceName, setserviceName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [eventDuration, setEventDuration] = useState(new Date());
+const [showDurationPicker, setShowDurationPicker] = useState(false);
+
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -129,31 +132,34 @@ const SearchScreen = () => {
   const handleSubmitBooking = async () => {
     try {
       const currentUser = auth().currentUser;
-      console.log("Current User:", currentUser);  // Log the current user
+      console.log("Current User:", currentUser);
   
       if (!currentUser) {
         Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
   
-      if (!selectedService.supplierId) {
+      if (!selectedService?.supplierId) {
         Alert.alert("Error", "Supplier ID is missing. Please try again.");
         return;
       }
   
-      const trimmedEventName = eventName.trim(); // Trim to avoid extra spaces
+      if (!eventDate || !eventTime) {
+        Alert.alert("Error", "Please select both event date and event time.");
+        return;
+      }
   
-      console.log("Searching for upcoming events with name:", trimmedEventName); // Log event name being searched
+      const trimmedEventName = eventName.trim();
+      console.log("Searching for upcoming events with name:", trimmedEventName);
   
-      // Query for all events with the status "Upcoming" in MyEvent subcollection
+      // Query for upcoming events in MyEvent subcollection
       const myEventSnapshot = await firestore()
         .collection("Clients")
         .doc(currentUser.uid)
         .collection("MyEvent")
         .where("status", "==", "Upcoming")
-        .get({ source: "server" }); // Force fresh fetch from Firestore
+        .get({ source: "server" });
   
-      // Log the fetched documents to debug
       console.log("MyEvent Query Results:", myEventSnapshot.docs.map(doc => doc.data()));
   
       if (myEventSnapshot.empty) {
@@ -161,10 +167,10 @@ const SearchScreen = () => {
         return;
       }
   
-      // Filter events that match the eventName
+      // Filter events matching eventName
       const matchingEvent = myEventSnapshot.docs.find(doc => {
         const event = doc.data();
-        return event.eventName.trim() === trimmedEventName; // Ensure both event names match
+        return event.eventName.trim() === trimmedEventName;
       });
   
       if (!matchingEvent) {
@@ -173,10 +179,9 @@ const SearchScreen = () => {
       }
   
       const myEventDoc = matchingEvent.data();
-      console.log("Matching event found:", myEventDoc); // Log the matching event
+      console.log("Matching event found:", myEventDoc);
   
-      // Proceed with further checks if the event exists in MyEvent subcollection
-      // Check if the service is already booked by another user at the same time
+      // Check if service is already booked at the same time
       const existingBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("serviceId", "==", selectedService.id)
@@ -189,7 +194,7 @@ const SearchScreen = () => {
         return;
       }
   
-      // Check if the current user already booked this service
+      // Check if user already booked this service
       const userBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("uid", "==", currentUser.uid)
@@ -207,25 +212,33 @@ const SearchScreen = () => {
         .collection("Services")
         .doc(selectedService.id);
   
-      // Proceed to book the service
-      await firestore().collection("Bookings").add({
+        const formattedDuration = eventDuration.toISOString().split("T")[0];
+        
+      // **Log data before Firestore submission**
+      const bookingData = {
         uid: currentUser.uid,
-        serviceId: selectedService.id,
-        supplierId: selectedService.supplierId,
-        serviceName: selectedService.serviceName,
-        supplierName: selectedService.supplierName,
-        location: selectedService.Location,
-        servicePrice: selectedService.servicePrice,
-        imageUrl: selectedService.imageUrl,
+        serviceId: selectedService.id || "",
+        supplierId: selectedService.supplierId || "",
+        serviceName: selectedService.serviceName || "",
+        supplierName: selectedService.supplierName || "",
+        location: selectedService.location || "",
+        servicePrice: selectedService.servicePrice || 0,
+        imageUrl: selectedService.imageUrl || "",
         timestamp: firestore.FieldValue.serverTimestamp(),
         status: "Pending",
-        eventTime,
-        eventDate,
-        eventPlace,
-        venueType,
-        referenceNumber,
-        eventName,
-      });
+        eventTime: eventTime.toISOString().split("T")[1].slice(0, 5),
+        eventDate: eventDate.toISOString().split("T")[0],
+        eventPlace: eventPlace || "",
+        venueType: venueType || "",
+        referenceNumber: referenceNumber || "",
+        eventName: eventName || "",
+        eventDuration: formattedDuration, // ✅ Store as full date (YYYY-MM-DD)
+      };
+  
+      console.log("Booking Data:", bookingData);
+  
+      // Proceed to book the service
+      await firestore().collection("Bookings").add(bookingData);
   
       // Update the service status to Pending
       const serviceDoc = await serviceRef.get();
@@ -292,6 +305,13 @@ const SearchScreen = () => {
     }
   };
 
+  const handleDurationChange = (event, selectedDate) => {
+    setShowDurationPicker(false);
+    if (selectedDate) {
+      setEventDuration(selectedDate);
+    }
+  };
+  
   
 
   if (loading) {
@@ -371,6 +391,21 @@ const SearchScreen = () => {
               onChange={handleDateChange}
             />
           )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Event Duration (YYYY-MM-DD)"
+              value={eventDuration.toLocaleDateString()} // Display in readable format
+              onFocus={() => setShowDurationPicker(true)}
+            />
+            {showDurationPicker && (
+              <DateTimePicker
+                value={eventDuration}
+                mode="date" // ✅ Full date picker
+                display="default"
+                onChange={handleDurationChange}
+              />
+            )}
 
           <TextInput
             style={styles.input}

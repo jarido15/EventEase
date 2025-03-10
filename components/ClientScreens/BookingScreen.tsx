@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';  // Import useNavigation
@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';  // Import useNavigati
 const BookingsScreen = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [favorites, setFavorites] = useState({});
   const navigation = useNavigation();  // Hook for navigation
 
   useEffect(() => {
@@ -26,7 +27,20 @@ const BookingsScreen = () => {
           .get();
 
         if (!bookingsSnapshot.empty) {
-          const bookingsData = bookingsSnapshot.docs.map((doc) => doc.data());
+          const bookingsData = await Promise.all(bookingsSnapshot.docs.map(async (doc) => {
+            const bookingData = doc.data();
+            const supplierSnapshot = await firestore()
+              .collection('Suppliers')
+              .where('supplierName', '==', bookingData.supplierName)
+              .get();
+            const supplierData = supplierSnapshot.empty ? {} : supplierSnapshot.docs[0].data();
+
+            return {
+              ...bookingData,
+              supplierDetails: supplierData,
+            };
+          }));
+
           setBookings(bookingsData);
         } else {
           console.log('No bookings found');
@@ -40,6 +54,71 @@ const BookingsScreen = () => {
 
     fetchBookings();
   }, []);
+
+  const addToFavorites = async (serviceName, supplierName) => {
+    const user = auth().currentUser;
+    if (!user) return;
+  
+    // Check if both serviceName and supplierName are valid before proceeding
+    if (!serviceName || !supplierName) {
+      Alert.alert('Error', 'Invalid service or supplier information.');
+      return;
+    }
+  
+    try {
+      // Find Supplier details by supplierName from the Bookings Collection
+      const bookingSnapshot = await firestore()
+        .collection('Bookings')
+        .where('supplierName', '==', supplierName)
+        .get();
+  
+      if (bookingSnapshot.empty) {
+        Alert.alert('Error', 'Booking not found for this supplier.');
+        return;
+      }
+  
+      const bookingData = bookingSnapshot.docs[0].data();
+      const imageUrl = bookingData.imageUrl; // Use imageUrl from Bookings collection
+  
+      // Now, find Supplier details from the Supplier collection based on supplierName
+      const supplierSnapshot = await firestore()
+        .collection('Supplier')  // Use the correct collection name 'Suppliers'
+        .where('supplierName', '==', supplierName)
+        .get();
+  
+      if (supplierSnapshot.empty) {
+        Alert.alert('Error', 'Supplier not found.');
+        return;
+      }
+  
+      const supplierData = supplierSnapshot.docs[0].data();
+      const supplierId = supplierSnapshot.docs[0].id;
+  
+      // Add the supplier to the Favorite Subcollection under the current user
+      await firestore()
+        .collection('Clients')
+        .doc(user.uid)
+        .collection('Favorite')
+        .doc(supplierId)
+        .set({
+          serviceName: serviceName,
+          supplierName: supplierName,
+          imageUrl: imageUrl,
+          BusinessName: supplierData.BusinessName,
+          ContactNumber: supplierData.ContactNumber,
+          email: supplierData.email,
+          Location: supplierData.Location,
+        });
+  
+      // Update the UI
+      setFavorites({ ...favorites, [supplierId]: true });
+      Alert.alert('Success', 'Added to favorites!');
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+      Alert.alert('Error', 'Could not add to favorites.');
+    }
+  };
+  
 
   if (loading) {
     return (
@@ -78,6 +157,15 @@ const BookingsScreen = () => {
                 <Text style={styles.venueType}>Venue Type: {item.venueType}</Text>
                 <Text style={styles.status}>Status: {item.status}</Text>
                 <Text style={styles.price}>Price: ${item.servicePrice}</Text>
+
+                {/* Add to Favorite button */}
+                <TouchableOpacity 
+                  onPress={() => addToFavorites(item.serviceName, item.supplierName)}  // Corrected to pass parameters
+                  style={styles.favoriteButton}
+                >
+                  <Image source={require('../images/addfavorite.png')} style={styles.favoriteIcon} />
+                  <Text style={styles.favoriteText}>Add to Favorites</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -145,8 +233,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     overflow: 'hidden',
-    transform: [{ scale: 1 }],
-    transition: 'transform 0.3s', // Added for tap effect (hover/touch effect)
   },
   image: {
     width: '100%',
@@ -201,6 +287,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginTop: 10,
+  },
+  favoriteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  favoriteIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  favoriteText: {
+    fontSize: 16,
+    color: '#007AFF',
   },
 });
 
