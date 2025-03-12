@@ -7,13 +7,13 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 const SupplierRegister = ({ navigation }) => {
-  const [fullName, setFullName] = useState('');
+  const [supplierName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
   const handleContinue = async () => {
-    if (!fullName || !email || !password || !confirmPassword) {
+    if (!supplierName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
@@ -29,7 +29,7 @@ const SupplierRegister = ({ navigation }) => {
 
       // Save additional user data in Firestore
       await firestore().collection('Supplier').doc(user.uid).set({
-        fullName,
+        supplierName,
         email,
         createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
       });
@@ -48,7 +48,7 @@ const SupplierRegister = ({ navigation }) => {
         <Text style={styles.title}>Create Your Account</Text>
         <Text style={styles.subtitle}>Together, We'll Craft Memorable Events.</Text>
 
-        <TextInput style={styles.input} placeholder="Enter Full Name" value={fullName} onChangeText={setFullName} />
+        <TextInput style={styles.input} placeholder="Enter Full Name" value={supplierName} onChangeText={setFullName} />
         <TextInput style={styles.input} placeholder="Enter Email Address" value={email} onChangeText={setEmail} keyboardType="email-address" />
         <TextInput style={styles.input} placeholder="Enter Password" value={password} onChangeText={setPassword} secureTextEntry />
         <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />

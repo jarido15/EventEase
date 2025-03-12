@@ -1,3 +1,4 @@
+/* eslint-disable react/self-closing-comp */
 /* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
 import {
@@ -13,6 +14,7 @@ import {
   Modal,
   TouchableWithoutFeedback,
   Keyboard,
+  ScrollView,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
@@ -41,6 +43,9 @@ const SearchScreen = () => {
   const [serviceName, setserviceName] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [eventDuration, setEventDuration] = useState(new Date());
+const [showDurationPicker, setShowDurationPicker] = useState(false);
+
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -129,31 +134,34 @@ const SearchScreen = () => {
   const handleSubmitBooking = async () => {
     try {
       const currentUser = auth().currentUser;
-      console.log("Current User:", currentUser);  // Log the current user
+      console.log("Current User:", currentUser);
   
       if (!currentUser) {
         Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
   
-      if (!selectedService.supplierId) {
+      if (!selectedService?.supplierId) {
         Alert.alert("Error", "Supplier ID is missing. Please try again.");
         return;
       }
   
-      const trimmedEventName = eventName.trim(); // Trim to avoid extra spaces
+      if (!eventDate || !eventDuration) {
+        Alert.alert("Error", "Please select both event date and event duration.");
+        return;
+      }
   
-      console.log("Searching for upcoming events with name:", trimmedEventName); // Log event name being searched
+      const trimmedEventName = eventName.trim();
+      console.log("Searching for upcoming events with name:", trimmedEventName);
   
-      // Query for all events with the status "Upcoming" in MyEvent subcollection
+      // Query for upcoming events in MyEvent subcollection
       const myEventSnapshot = await firestore()
         .collection("Clients")
         .doc(currentUser.uid)
         .collection("MyEvent")
         .where("status", "==", "Upcoming")
-        .get({ source: "server" }); // Force fresh fetch from Firestore
+        .get({ source: "server" });
   
-      // Log the fetched documents to debug
       console.log("MyEvent Query Results:", myEventSnapshot.docs.map(doc => doc.data()));
   
       if (myEventSnapshot.empty) {
@@ -161,10 +169,10 @@ const SearchScreen = () => {
         return;
       }
   
-      // Filter events that match the eventName
+      // Filter events matching eventName
       const matchingEvent = myEventSnapshot.docs.find(doc => {
         const event = doc.data();
-        return event.eventName.trim() === trimmedEventName; // Ensure both event names match
+        return event.eventName.trim() === trimmedEventName;
       });
   
       if (!matchingEvent) {
@@ -173,10 +181,9 @@ const SearchScreen = () => {
       }
   
       const myEventDoc = matchingEvent.data();
-      console.log("Matching event found:", myEventDoc); // Log the matching event
+      console.log("Matching event found:", myEventDoc);
   
-      // Proceed with further checks if the event exists in MyEvent subcollection
-      // Check if the service is already booked by another user at the same time
+      // Check if service is already booked at the same time
       const existingBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("serviceId", "==", selectedService.id)
@@ -189,7 +196,7 @@ const SearchScreen = () => {
         return;
       }
   
-      // Check if the current user already booked this service
+      // Check if user already booked this service
       const userBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("uid", "==", currentUser.uid)
@@ -201,38 +208,92 @@ const SearchScreen = () => {
         return;
       }
   
+      // Fetch the selected service's unavailable dates from the Supplier collection -> Services subcollection
       const serviceRef = firestore()
         .collection("Supplier")
         .doc(selectedService.supplierId)
         .collection("Services")
         .doc(selectedService.id);
   
-      // Proceed to book the service
-      await firestore().collection("Bookings").add({
-        uid: currentUser.uid,
-        serviceId: selectedService.id,
-        supplierId: selectedService.supplierId,
-        serviceName: selectedService.serviceName,
-        supplierName: selectedService.supplierName,
-        location: selectedService.Location,
-        servicePrice: selectedService.servicePrice,
-        imageUrl: selectedService.imageUrl,
-        timestamp: firestore.FieldValue.serverTimestamp(),
-        status: "Pending",
-        eventTime,
-        eventDate,
-        eventPlace,
-        venueType,
-        referenceNumber,
-        eventName,
-      });
-  
-      // Update the service status to Pending
       const serviceDoc = await serviceRef.get();
       if (!serviceDoc.exists) {
         throw new Error("Service document not found");
       }
   
+      const serviceData = serviceDoc.data();
+      const unavailableDates = serviceData?.unavailableDates || [];
+  
+      // Ensure eventDuration is a valid date object
+      if (!(eventDuration instanceof Date) || isNaN(eventDuration.getTime())) {
+        throw new Error("Invalid event duration. It must be a valid date.");
+      }
+      console.log("Event Duration Date:", eventDuration);
+  
+      // Calculate the duration between eventDate and eventDuration
+      const eventStartDate = new Date(eventDate); // Event start date
+      const eventEndDate = new Date(eventDuration); // Event end date
+  
+      // Check if eventDuration is later than eventDate
+      if (eventEndDate <= eventStartDate) {
+        throw new Error("Event duration must be later than the event start date.");
+      }
+  
+      const formattedEventDate = eventStartDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
+      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
+      console.log("Formatted Event Start Date:", formattedEventDate);
+      console.log("Formatted Event End Date:", formattedEventEndDate);
+  
+      // Check if any unavailable date matches the event date or duration
+      const isUnavailable = unavailableDates.some(date => {
+        return date === formattedEventDate || date === formattedEventEndDate;
+      });
+  
+      if (isUnavailable) {
+        Alert.alert("Error", "This service is unavailable for the selected date and time.");
+        return;
+      }
+  
+      // **Update unavailable dates** with the new event date
+      if (!unavailableDates.includes(formattedEventDate)) {
+        unavailableDates.push(formattedEventDate);
+      }
+  
+      // Also add the end date if it's not already included
+      if (!unavailableDates.includes(formattedEventEndDate)) {
+        unavailableDates.push(formattedEventEndDate);
+      }
+  
+      // Update the service document with the new unavailable dates
+      await serviceRef.update({
+        unavailableDates: unavailableDates
+      });
+  
+      const bookingData = {
+        uid: currentUser.uid,
+        serviceId: selectedService.id || "",
+        supplierId: selectedService.supplierId || "",
+        serviceName: selectedService.serviceName || "",
+        supplierName: selectedService.supplierName || "",
+        location: selectedService.location || "",
+        servicePrice: selectedService.servicePrice || 0,
+        imageUrl: selectedService.imageUrl || "",
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        status: "Pending",
+        eventTime: eventTime.toISOString().split("T")[1].slice(0, 5),
+        eventDate: formattedEventDate,
+        eventPlace: eventPlace || "",
+        venueType: venueType || "",
+        referenceNumber: referenceNumber || "",
+        eventName: eventName || "",
+        eventDuration: eventEndDate, // Store as a date
+      };
+  
+      console.log("Booking Data:", bookingData);
+  
+      // Proceed to book the service
+      await firestore().collection("Bookings").add(bookingData);
+  
+      // Update the service status to Pending
       await serviceRef.update({ status: "Pending" });
   
       // Send a push notification to the supplier
@@ -245,7 +306,6 @@ const SearchScreen = () => {
       Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
-  
   
   
   const sendPushNotification = async (supplierId, serviceName) => {
@@ -292,6 +352,13 @@ const SearchScreen = () => {
     }
   };
 
+  const handleDurationChange = (event, selectedDate) => {
+    setShowDurationPicker(false);
+    if (selectedDate) {
+      setEventDuration(selectedDate);
+    }
+  };
+  
   
 
   if (loading) {
@@ -337,6 +404,7 @@ const SearchScreen = () => {
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.description}> Price: {item.servicePrice}</Text>
                 <Text style={styles.description}> GCash Number: {item.gcashNumber}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
@@ -350,91 +418,109 @@ const SearchScreen = () => {
         />
       )}
 
-      <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}></View>
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+<Modal visible={modalVisible} animationType="slide" transparent={true}>
+  <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+    <View style={styles.modalOverlay}></View>
+  </TouchableWithoutFeedback>
+  <View style={styles.modalContainer}>
+    <ScrollView contentContainerStyle={styles.modalContent}>
+      <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Event Date"
-            value={eventDate.toLocaleDateString()}
-            onFocus={showDatePickerHandler}
-          />
-          {showDatePicker && (
-            <DateTimePicker
-              value={eventDate}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-            />
-          )}
+      <TextInput
+        style={styles.input}
+        placeholder="Event Date"
+        value={eventDate.toLocaleDateString()}
+        onFocus={showDatePickerHandler}
+      />
+      {showDatePicker && (
+        <DateTimePicker
+          value={eventDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Event Time"
-            value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            onFocus={showTimePickerHandler}
-          />
-          {showTimePicker && (
-            <DateTimePicker
-              value={eventTime}
-              mode="time"
-              display="default"
-              onChange={handleTimeChange}
-            />
-          )}
+      <TextInput
+        style={styles.input}
+        placeholder="Event Duration (YYYY-MM-DD)"
+        value={eventDuration.toLocaleDateString()} // Display in readable format
+        onFocus={() => setShowDurationPicker(true)}
+      />
+      {showDurationPicker && (
+        <DateTimePicker
+          value={eventDuration}
+          mode="date" // ✅ Full date picker
+          display="default"
+          onChange={handleDurationChange}
+        />
+      )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Event Name"
-            value={eventName}
-            onChangeText={seteventName}
-          />
+      <TextInput
+        style={styles.input}
+        placeholder="Event Time"
+        value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+        onFocus={showTimePickerHandler}
+      />
+      {showTimePicker && (
+        <DateTimePicker
+          value={eventTime}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
+        />
+      )}
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Event Place"
-            value={eventPlace}
-            onChangeText={setEventPlace}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter Venue Type"
-            value={venueType}
-            onChangeText={setVenueType}
-          />
-           <Text style={styles.label}>Select Event Category:</Text>
-    <Picker
-      selectedValue={serviceName}
-      style={styles.picker1}
-      onValueChange={(itemValue) => setserviceName(itemValue)}
-    >
-      <Picker.Item label="Select Category" value="" />
-      <Picker.Item label="Food and Beverage" value="Food and Beverage" />
-      <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
-      <Picker.Item label="Entertainment" value="Entertainment" />
-      <Picker.Item label="Decor and Styling" value="Decor and Styling" />
-      <Picker.Item label="Photography and Videography" value="Photography and Videography" />
-      <Picker.Item label="Event and Rentals" value="Event and Rentals" />
-      <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
-      <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
-    </Picker>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Event Name"
+        value={eventName}
+        onChangeText={seteventName}
+      />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter GCash Reference Number"
-            value={referenceNumber}
-            onChangeText={setreferenceNumber}
-          />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Event Place"
+        value={eventPlace}
+        onChangeText={setEventPlace}
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Enter Venue Type"
+        value={venueType}
+        onChangeText={setVenueType}
+      />
+      <Text style={styles.label}>Select Event Category:</Text>
+      <Picker
+        selectedValue={serviceName}
+        style={styles.picker1}
+        onValueChange={(itemValue) => setserviceName(itemValue)}
+      >
+        <Picker.Item label="Select Category" value="" />
+        <Picker.Item label="Food and Beverage" value="Food and Beverage" />
+        <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
+        <Picker.Item label="Entertainment" value="Entertainment" />
+        <Picker.Item label="Decor and Styling" value="Decor and Styling" />
+        <Picker.Item label="Photography and Videography" value="Photography and Videography" />
+        <Picker.Item label="Event and Rentals" value="Event and Rentals" />
+        <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
+        <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
+      </Picker>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
-            <Text style={styles.submitButtonText}>Submit Booking</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter GCash Reference Number"
+        value={referenceNumber}
+        onChangeText={setreferenceNumber}
+      />
+
+      <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
+        <Text style={styles.submitButtonText}>Submit Booking</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  </View>
+</Modal>
+
     </View>
   );
 };
@@ -540,7 +626,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   bookButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#5392DD',
     paddingVertical: 12,
     borderRadius: 5,
     marginTop: 20,
