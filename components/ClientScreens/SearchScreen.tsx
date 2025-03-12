@@ -1,3 +1,4 @@
+/* eslint-disable react/self-closing-comp */
 /* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
 import {
@@ -145,8 +146,8 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
         return;
       }
   
-      if (!eventDate || !eventTime) {
-        Alert.alert("Error", "Please select both event date and event time.");
+      if (!eventDate || !eventDuration) {
+        Alert.alert("Error", "Please select both event date and event duration.");
         return;
       }
   
@@ -207,15 +208,66 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
         return;
       }
   
+      // Fetch the selected service's unavailable dates from the Supplier collection -> Services subcollection
       const serviceRef = firestore()
         .collection("Supplier")
         .doc(selectedService.supplierId)
         .collection("Services")
         .doc(selectedService.id);
   
-        const formattedDuration = eventDuration.toISOString().split("T")[0];
-        
-      // **Log data before Firestore submission**
+      const serviceDoc = await serviceRef.get();
+      if (!serviceDoc.exists) {
+        throw new Error("Service document not found");
+      }
+  
+      const serviceData = serviceDoc.data();
+      const unavailableDates = serviceData?.unavailableDates || [];
+  
+      // Ensure eventDuration is a valid date object
+      if (!(eventDuration instanceof Date) || isNaN(eventDuration.getTime())) {
+        throw new Error("Invalid event duration. It must be a valid date.");
+      }
+      console.log("Event Duration Date:", eventDuration);
+  
+      // Calculate the duration between eventDate and eventDuration
+      const eventStartDate = new Date(eventDate); // Event start date
+      const eventEndDate = new Date(eventDuration); // Event end date
+  
+      // Check if eventDuration is later than eventDate
+      if (eventEndDate <= eventStartDate) {
+        throw new Error("Event duration must be later than the event start date.");
+      }
+  
+      const formattedEventDate = eventStartDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
+      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
+      console.log("Formatted Event Start Date:", formattedEventDate);
+      console.log("Formatted Event End Date:", formattedEventEndDate);
+  
+      // Check if any unavailable date matches the event date or duration
+      const isUnavailable = unavailableDates.some(date => {
+        return date === formattedEventDate || date === formattedEventEndDate;
+      });
+  
+      if (isUnavailable) {
+        Alert.alert("Error", "This service is unavailable for the selected date and time.");
+        return;
+      }
+  
+      // **Update unavailable dates** with the new event date
+      if (!unavailableDates.includes(formattedEventDate)) {
+        unavailableDates.push(formattedEventDate);
+      }
+  
+      // Also add the end date if it's not already included
+      if (!unavailableDates.includes(formattedEventEndDate)) {
+        unavailableDates.push(formattedEventEndDate);
+      }
+  
+      // Update the service document with the new unavailable dates
+      await serviceRef.update({
+        unavailableDates: unavailableDates
+      });
+  
       const bookingData = {
         uid: currentUser.uid,
         serviceId: selectedService.id || "",
@@ -228,12 +280,12 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
         timestamp: firestore.FieldValue.serverTimestamp(),
         status: "Pending",
         eventTime: eventTime.toISOString().split("T")[1].slice(0, 5),
-        eventDate: eventDate.toISOString().split("T")[0],
+        eventDate: formattedEventDate,
         eventPlace: eventPlace || "",
         venueType: venueType || "",
         referenceNumber: referenceNumber || "",
         eventName: eventName || "",
-        eventDuration: formattedDuration, // ✅ Store as full date (YYYY-MM-DD)
+        eventDuration: eventEndDate, // Store as a date
       };
   
       console.log("Booking Data:", bookingData);
@@ -242,11 +294,6 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
       await firestore().collection("Bookings").add(bookingData);
   
       // Update the service status to Pending
-      const serviceDoc = await serviceRef.get();
-      if (!serviceDoc.exists) {
-        throw new Error("Service document not found");
-      }
-  
       await serviceRef.update({ status: "Pending" });
   
       // Send a push notification to the supplier
@@ -259,7 +306,6 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
       Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
-  
   
   
   const sendPushNotification = async (supplierId, serviceName) => {
@@ -358,6 +404,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
+                <Text style={styles.description}> Price: {item.servicePrice}</Text>
                 <Text style={styles.description}> GCash Number: {item.gcashNumber}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
