@@ -18,7 +18,6 @@ const MyEventsScreen = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
-  const [completedServices, setCompletedServices] = useState({});
   const user = auth().currentUser;
   const navigation = useNavigation();
 
@@ -37,25 +36,21 @@ const MyEventsScreen = () => {
           .collection("MyEvent")
           .get();
 
-        if (snapshot.empty) {
-          console.log("No events found for this user.");
-          setEvents([]);
-        } else {
-          const eventList = snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              eventDate: data.date?.toDate() || new Date(),
-              eventImage: data.eventImage, // Fallback for missing images
-              eventName: data.eventName || "Unnamed Event",
-              eventTime: data.eventTime || "Unknown Time",
-              services: data.selectedServices || [],
-              status: data.status || "Upcoming",
-            };
-          });
-          
-          setEvents(eventList);
-        }
+        const eventList = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            eventDate: data.date?.toDate() || new Date(),
+            eventImage: data.eventImage || null,
+            eventName: data.eventName || "Unnamed Event",
+            eventTime: data.eventTime || "Unknown Time",
+            services: data.selectedServices || [],
+            completedServices: data.completedServices || Array(data.selectedServices?.length).fill(false),
+            status: data.status || "Upcoming",
+          };
+        });
+
+        setEvents(eventList);
       } catch (error) {
         console.error("Error fetching user events:", error);
       } finally {
@@ -66,19 +61,38 @@ const MyEventsScreen = () => {
     fetchEvents();
   }, [user?.uid]);
 
-  const handleServiceCheck = (eventId, serviceIndex, isChecked) => {
-    setCompletedServices((prev) => {
-      const updatedServices = { ...prev };
-      if (!updatedServices[eventId]) updatedServices[eventId] = [];
-      updatedServices[eventId][serviceIndex] = isChecked;
-      return updatedServices;
-    });
+  const handleServiceCheck = async (eventId, serviceIndex) => {
+    const updatedEvents = events.map((event) =>
+      event.id === eventId
+        ? {
+            ...event,
+            completedServices: event.completedServices.map((status, index) =>
+              index === serviceIndex ? !status : status
+            ),
+          }
+        : event
+    );
+  
+    setEvents(updatedEvents);
+  
+    const event = updatedEvents.find((item) => item.id === eventId);
+  
+    // Update Firestore with the new completedServices array
+    await firestore()
+      .collection("Clients")
+      .doc(user.uid)
+      .collection("MyEvent")
+      .doc(eventId)
+      .update({
+        completedServices: event.completedServices,
+      });
   };
+  
 
   const handleServiceComplete = async (eventId) => {
     const event = events.find((item) => item.id === eventId);
     const allServicesCompleted = event.services.every(
-      (_, index) => completedServices[eventId]?.[index]
+      (_, index) => event.completedServices[index]
     );
 
     if (allServicesCompleted) {
@@ -167,14 +181,11 @@ const MyEventsScreen = () => {
             const eventDate = new Date(item.eventDate);
             return (
               <View style={styles.card}>
-            <Image
-  source={
-    item.eventImage ? { uri: item.eventImage } : require("../images/upevent.png")
-  }
-  style={styles.eventImage}
-  resizeMode="cover"
-/>
-
+                <Image
+                  source={item.eventImage ? { uri: item.eventImage } : require("../images/upevent.png")}
+                  style={styles.eventImage}
+                  resizeMode="cover"
+                />
 
                 <View style={styles.eventDetails}>
                   <Text style={styles.eventName}>{item.eventName}</Text>
@@ -182,35 +193,31 @@ const MyEventsScreen = () => {
                   <Text style={styles.eventTime}>⏰ {item.eventTime}</Text>
 
                   <View style={styles.servicesContainer}>
-  <Text style={styles.servicesTitle}>Services:</Text>
-  {item.services.length === 0 ? (
-    <Text style={styles.noServices}>No services available.</Text>
-  ) : selectedTab === "Upcoming" ? (
-    item.services.map((service, index) => (
-      <View key={index} style={styles.serviceItem}>
-        <TouchableOpacity
-          onPress={() =>
-            handleServiceCheck(item.id, index, !(completedServices[item.id]?.[index]))
-          }
-        >
-          <Image
-            source={
-              completedServices[item.id]?.[index]
-                ? require("../images/checkedbox.png")
-                : require("../images/Uncheckedbox.png")
-            }
-            style={styles.checkImage}
-          />
-        </TouchableOpacity>
-        <Text style={styles.serviceText}>{service}</Text>
-      </View>
-    ))
-  ) : (
-    item.services.map((service, index) => (
-      <Text key={index} style={styles.serviceText}>• {service}</Text>
-    ))
-  )}
-</View>
+                    <Text style={styles.servicesTitle}>Services:</Text>
+                    {item.services.length === 0 ? (
+                      <Text style={styles.noServices}>No services available.</Text>
+                    ) : selectedTab === "Upcoming" ? (
+                      item.services.map((service, index) => (
+                        <View key={index} style={styles.serviceItem}>
+                          <TouchableOpacity onPress={() => handleServiceCheck(item.id, index)}>
+                            <Image
+                              source={
+                                item.completedServices[index]
+                                  ? require("../images/checkedbox.png")
+                                  : require("../images/Uncheckedbox.png")
+                              }
+                              style={styles.checkImage}
+                            />
+                          </TouchableOpacity>
+                          <Text style={styles.serviceText}>{service}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      item.services.map((service, index) => (
+                        <Text key={index} style={styles.serviceText}>• {service}</Text>
+                      ))
+                    )}
+                  </View>
 
                   {selectedTab === "Upcoming" && (
                     <TouchableOpacity
@@ -249,7 +256,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5392DD",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     marginBottom: 15,
@@ -268,8 +275,8 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    textAlign: "center",
-    fontSize: 26,
+    left: '40%',
+    fontSize: 24,
     fontWeight: "bold",
     color: "white",
   },
@@ -294,7 +301,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   activeTab: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5392DD",
     borderRadius: 8,
   },
   tabText: {
@@ -386,7 +393,7 @@ const styles = StyleSheet.create({
     height: 24,
   },
   completeButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5392DD",
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 8,

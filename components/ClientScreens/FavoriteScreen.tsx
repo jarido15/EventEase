@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
+import { 
+  View, Text, FlatList, StyleSheet, TouchableOpacity, Image, Alert, ActivityIndicator 
+} from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
+import { useNavigation } from '@react-navigation/native';
 
 const FavoriteScreen = () => {
+  const navigation = useNavigation();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -13,26 +17,16 @@ const FavoriteScreen = () => {
       if (!user) return;
 
       try {
-        // Fetch the Favorites subcollection for the logged-in user
         const favoritesSnapshot = await firestore()
           .collection('Clients')
           .doc(user.uid)
           .collection('Favorite')
           .get();
 
-        const favoritesData = favoritesSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            serviceName: data.serviceName,
-            supplierName: data.supplierName,
-            imageUrl: data.imageUrl,
-            BusinessName: data.BusinessName,
-            ContactNumber: data.ContactNumber,
-            email: data.email,
-            Location: data.Location,
-          };
-        });
+        const favoritesData = favoritesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
         setFavorites(favoritesData);
       } catch (error) {
@@ -50,7 +44,6 @@ const FavoriteScreen = () => {
     if (!user) return;
 
     try {
-      // Remove the favorite document from Firestore
       await firestore()
         .collection('Clients')
         .doc(user.uid)
@@ -58,7 +51,6 @@ const FavoriteScreen = () => {
         .doc(favoriteId)
         .delete();
 
-      // Remove the favorite item from the state
       setFavorites(favorites.filter(fav => fav.id !== favoriteId));
       Alert.alert('Success', 'Favorite removed successfully!');
     } catch (error) {
@@ -68,42 +60,59 @@ const FavoriteScreen = () => {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.item}>
-      <Image source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} style={styles.image} />
-      <View style={styles.itemContent}>
-        <Text style={styles.title}>{item.serviceName}</Text>
-        <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
-        <Text style={styles.businessName}>Business: {item.BusinessName}</Text>
-        <Text style={styles.location}>Location: {item.Location}</Text>
-        <Text style={styles.contact}>Contact: {item.ContactNumber}</Text>
+    <View style={styles.card}>
+      <Image 
+        source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} 
+        style={styles.image} 
+      />
+
+      <View style={styles.cardContent}>
+        <Text style={styles.serviceName}>{item.serviceName}</Text>
+        <Text style={styles.supplier}>Supplier: {item.supplierName}</Text>
+        <Text style={styles.business}>Business Name: {item.BusinessName}</Text>
+        <Text style={styles.location}>Address: {item.Location}</Text>
+        <Text style={styles.contact}>Contact Number: {item.ContactNumber}</Text>
         <Text style={styles.email}>Email: {item.email}</Text>
+
+        <TouchableOpacity 
+          onPress={() => handleRemoveFavorite(item.id)}
+        >
+          <Image source={require('../images/delete.png')} style={styles.removeIcon} />
+        </TouchableOpacity>
       </View>
-      {/* Remove Button */}
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => handleRemoveFavorite(item.id)}
-      >
-        <Image source={require('../images/trash.png')} style={styles.removeIcon} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+    </View>
   );
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Text>Loading favorites...</Text>
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading Favorites...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Your Favorites</Text>
-      <FlatList
-        data={favorites}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-      />
+      {/* Navigation Bar */}
+      <View style={styles.navBar}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Image source={require('../images/back.png')} style={styles.backIcon} />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Your Favorites</Text>
+      </View>
+
+      {favorites.length === 0 ? (
+        <Text style={styles.noFavoritesText}>No favorites yet! ❤️</Text>
+      ) : (
+        <FlatList
+          data={favorites}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: 20, paddingTop: 80 }}
+        />
+      )}
     </View>
   );
 };
@@ -111,61 +120,112 @@ const FavoriteScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: 16,
   },
-  header: {
+  navBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    backgroundColor: "#5392DD",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    width: "109%",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  backButton: {
+    padding: 8,
+  },
+  backIcon: {
+    width: 30,
+    height: 30,
+  },
+  navTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
+    color: '#fff',
+    left: '45%',
   },
-  item: {
-    flexDirection: 'row',
-    backgroundColor: '#f9c2ff',
-    padding: 20,
-    marginVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
+  noFavoritesText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginTop: 100,
+    color: '#888',
+  },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    marginBottom: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
+    overflow: 'hidden',
+    top: 20,
   },
   image: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 15,
+    width: '100%',
+    height: 200,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
-  itemContent: {
-    flex: 1,
+  cardContent: {
+    padding: 16,
   },
-  title: {
-    fontSize: 18,
+  serviceName: {
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 6,
   },
-  supplierName: {
+  supplier: {
     fontSize: 16,
     color: '#555',
   },
-  businessName: {
+  business: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#007AFF',
+    marginBottom: 6,
   },
   location: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#444',
+    marginBottom: 4,
   },
   contact: {
     fontSize: 16,
+    color: '#444',
+    marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    color: '#555',
-  },
-  removeButton: {
-    marginLeft: 10,
+    color: '#444',
   },
   removeIcon: {
-    width: 20,
-    height: 20,
-    tintColor: 'red',
+    width: 34,
+    height: 34,
+    left: '90%',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 18,
+    color: '#555',
   },
 });
 

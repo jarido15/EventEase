@@ -1,14 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, FlatList, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Modal, TextInput, Button } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-import { useNavigation } from '@react-navigation/native';  // Import useNavigation
+import { useNavigation } from '@react-navigation/native';
 
 const BookingsScreen = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState({});
-  const navigation = useNavigation();  // Hook for navigation
+  const [modalVisible, setModalVisible] = useState(false);
+  const [gcashNumber, setGcashNumber] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [amount, setAmount] = useState('');
+  const [selectedBooking, setSelectedBooking] = useState(null); // Track the selected booking
+  const navigation = useNavigation();
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -58,43 +63,39 @@ const BookingsScreen = () => {
   const addToFavorites = async (serviceName, supplierName) => {
     const user = auth().currentUser;
     if (!user) return;
-  
-    // Check if both serviceName and supplierName are valid before proceeding
+
     if (!serviceName || !supplierName) {
       Alert.alert('Error', 'Invalid service or supplier information.');
       return;
     }
-  
+
     try {
-      // Find Supplier details by supplierName from the Bookings Collection
       const bookingSnapshot = await firestore()
         .collection('Bookings')
         .where('supplierName', '==', supplierName)
         .get();
-  
+
       if (bookingSnapshot.empty) {
         Alert.alert('Error', 'Booking not found for this supplier.');
         return;
       }
-  
+
       const bookingData = bookingSnapshot.docs[0].data();
-      const imageUrl = bookingData.imageUrl; // Use imageUrl from Bookings collection
-  
-      // Now, find Supplier details from the Supplier collection based on supplierName
+      const imageUrl = bookingData.imageUrl;
+
       const supplierSnapshot = await firestore()
-        .collection('Supplier')  // Use the correct collection name 'Suppliers'
+        .collection('Suppliers')
         .where('supplierName', '==', supplierName)
         .get();
-  
+
       if (supplierSnapshot.empty) {
         Alert.alert('Error', 'Supplier not found.');
         return;
       }
-  
+
       const supplierData = supplierSnapshot.docs[0].data();
       const supplierId = supplierSnapshot.docs[0].id;
-  
-      // Add the supplier to the Favorite Subcollection under the current user
+
       await firestore()
         .collection('Clients')
         .doc(user.uid)
@@ -108,9 +109,9 @@ const BookingsScreen = () => {
           ContactNumber: supplierData.ContactNumber,
           email: supplierData.email,
           Location: supplierData.Location,
+          supplierId: supplierId,
         });
-  
-      // Update the UI
+
       setFavorites({ ...favorites, [supplierId]: true });
       Alert.alert('Success', 'Added to favorites!');
     } catch (error) {
@@ -118,7 +119,39 @@ const BookingsScreen = () => {
       Alert.alert('Error', 'Could not add to favorites.');
     }
   };
-  
+
+  const handlePaymentSubmit = () => {
+    if (!gcashNumber || !referenceNumber || !amount) {
+      Alert.alert('Error', 'Please fill in all fields.');
+      return;
+    }
+
+    Alert.alert('Success', 'Payment details submitted!');
+    setModalVisible(false);
+  };
+
+  const openPaymentModal = async (serviceId, supplierId) => {
+    try {
+      // Fetch the corresponding supplier and service details
+      const serviceSnapshot = await firestore()
+        .collection('Supplier')
+        .doc(supplierId)
+        .collection('Services')
+        .doc(serviceId)
+        .get();
+
+      if (serviceSnapshot.exists) {
+        const serviceData = serviceSnapshot.data();
+        setGcashNumber(serviceData.gcashNumber || ''); // Set the gcashNumber in the modal
+        setSelectedBooking({ serviceId, supplierId });
+        setModalVisible(true);
+      } else {
+        Alert.alert('Error', 'Service not found.');
+      }
+    } catch (error) {
+      console.error('Error fetching service details:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -159,18 +192,63 @@ const BookingsScreen = () => {
                 <Text style={styles.price}>Price: ${item.servicePrice}</Text>
 
                 {/* Add to Favorite button */}
-                <TouchableOpacity 
-                  onPress={() => addToFavorites(item.serviceName, item.supplierName)}  // Corrected to pass parameters
+                <TouchableOpacity
+                  onPress={() => addToFavorites(item.serviceName, item.supplierName)}
                   style={styles.favoriteButton}
                 >
                   <Image source={require('../images/addfavorite.png')} style={styles.favoriteIcon} />
                   <Text style={styles.favoriteText}>Add to Favorites</Text>
+                </TouchableOpacity>
+
+                {/* Payment Button */}
+                <TouchableOpacity
+                  onPress={() => openPaymentModal(item.serviceId, item.supplierId)} // Pass serviceId and supplierId
+                  style={styles.paymentButton}
+                >
+                  <Text style={styles.paymentText}>💳 Pay Now</Text>
                 </TouchableOpacity>
               </View>
             </View>
           )}
         />
       )}
+
+      {/* Payment Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Payment Details</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="GCash Number"
+              value={gcashNumber}
+              editable={false} // Disable editing for the gcashNumber
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Reference Number"
+              value={referenceNumber}
+              onChangeText={setReferenceNumber}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Enter Amount"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
+            />
+            <View style={styles.modalActions}>
+              <Button title="Submit" onPress={handlePaymentSubmit} />
+              <Button title="Cancel" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -194,10 +272,10 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between", // Ensures content is spaced evenly
+    justifyContent: "space-between",
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#5392DD",
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -208,7 +286,7 @@ const styles = StyleSheet.create({
   backButton: {
     width: 30,
     height: 30,
-    tintColor: '#fff', // Ensure the back button is visible on the blue background
+    tintColor: '#fff',
   },
   header: {
     fontSize: 24,
@@ -226,7 +304,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 15,
     marginVertical: 10,
-    marginHorizontal: 20, // Added margin to left and right of the card
+    marginHorizontal: 20,
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
@@ -301,6 +379,47 @@ const styles = StyleSheet.create({
   favoriteText: {
     fontSize: 16,
     color: '#007AFF',
+  },
+  paymentButton: {
+    backgroundColor: '#5392DD',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  paymentText: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  input: {
+    height: 40,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    marginBottom: 10,
+    paddingLeft: 10,
+    borderRadius: 5,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

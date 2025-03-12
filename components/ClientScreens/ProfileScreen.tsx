@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -29,6 +29,33 @@ const ProfileScreen = () => {
       fetchUserData();
     }
   }, [user?.uid]);
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: () => {
+            auth()
+              .signOut()
+              .then(() => {
+                navigation.navigate('ClientLogin'); // Navigate to the ClientLogin screen
+              })
+              .catch(error => {
+                console.error('Error during sign-out: ', error);
+              });
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -65,7 +92,7 @@ const ProfileScreen = () => {
         <Text style={styles.text}>💳 Payment and Booking</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.item}>
+      <TouchableOpacity style={styles.item} onPress={handleLogout}>
         <Text style={styles.text}>🚪 Logout</Text>
       </TouchableOpacity>
     </View>

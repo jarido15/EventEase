@@ -272,7 +272,7 @@ export default function App() {
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
         
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
-        <Stack.Screen name="FavoriteScreen" component={FavoriteScreen} />
+        <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
 
 
 
