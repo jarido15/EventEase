@@ -245,7 +245,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
   
       // Check if any unavailable date matches the event date or duration
       const isUnavailable = unavailableDates.some(date => {
-        return date === formattedEventDate || date === formattedEventEndDate;
+        return date.eventDate === formattedEventDate || date.eventDuration === formattedEventEndDate;
       });
   
       if (isUnavailable) {
@@ -253,19 +253,15 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
         return;
       }
   
-      // **Update unavailable dates** with the new event date
-      if (!unavailableDates.includes(formattedEventDate)) {
-        unavailableDates.push(formattedEventDate);
-      }
-  
-      // Also add the end date if it's not already included
-      if (!unavailableDates.includes(formattedEventEndDate)) {
-        unavailableDates.push(formattedEventEndDate);
-      }
+      // **Update unavailable dates** with the new event date and duration
+      const newUnavailableDates = [
+        ...unavailableDates,
+        { eventDate: formattedEventDate, eventDuration: formattedEventEndDate }
+      ];
   
       // Update the service document with the new unavailable dates
       await serviceRef.update({
-        unavailableDates: unavailableDates
+        unavailableDates: newUnavailableDates
       });
   
       const bookingData = {
@@ -285,7 +281,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
         venueType: venueType || "",
         referenceNumber: referenceNumber || "",
         eventName: eventName || "",
-        eventDuration: eventEndDate, // Store as a date
+        eventDuration: formattedEventEndDate, // Store eventDuration as formatted date
       };
   
       console.log("Booking Data:", bookingData);
@@ -306,6 +302,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
       Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
+  
   
   
   const sendPushNotification = async (supplierId, serviceName) => {
@@ -405,6 +402,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
                 <Text style={styles.description}> Price: {item.servicePrice}</Text>
+                <Text style={styles.description}> Required Down Payment: {item.DownPayment}</Text>
                 <Text style={styles.description}> GCash Number: {item.gcashNumber}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
