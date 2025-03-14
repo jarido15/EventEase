@@ -244,7 +244,9 @@ const BookingsScreen = () => {
       }
   
       // Assuming we only have one booking match for the given serviceId and supplierId
-      const bookingData = bookingSnapshot.docs[0].data();
+      const bookingDoc = bookingSnapshot.docs[0];
+      const bookingData = bookingDoc.data();
+      const bookingRef = firestore().collection('Bookings').doc(bookingDoc.id);
   
       // Prepare the payment data
       const paymentData = {
@@ -265,14 +267,18 @@ const BookingsScreen = () => {
       // Save the payment to Firestore in the Payments collection
       await firestore().collection('Payments').add(paymentData);
   
+      // Update the booking status to "Paid"
+      await bookingRef.update({ status: 'Paid' });
+  
       // Optionally, update any payment-related status or actions here
-      Alert.alert('Success', 'Payment submitted successfully!');
+      Alert.alert('Success', 'Payment submitted successfully! Booking status updated to Paid.');
       setModalVisible(false); // Close the modal after payment submission
     } catch (error) {
       console.error('Error submitting payment:', error);
       Alert.alert('Error', error.message || 'There was an issue submitting the payment. Please try again.');
     }
   };
+  
   
   
 
@@ -420,6 +426,7 @@ const BookingsScreen = () => {
         <Text style={styles.header}>Your Bookings</Text>
       </View>
 
+
       {bookings.length === 0 ? (
         <Text style={styles.noBookingsText}>You have no bookings yet.</Text>
       ) : (
@@ -468,7 +475,11 @@ const BookingsScreen = () => {
         />
       )}
 
-
+<TouchableOpacity onPress={() => navigation.navigate('CompleteService')}>
+        <View style={styles.complete}>
+          <Image source={require('../images/completed-task.png')} style={styles.bookicon}/>
+        </View>
+       </TouchableOpacity>
 
       {/* Payment Modal */}
       <Modal
@@ -689,6 +700,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#fff',
     textAlign: 'center',
+  },
+  complete: {
+    width: 64,
+    height: 64,
+    borderRadius: 50,
+    backgroundColor: '#5392DD',
+    left: '80%',
+    bottom: '60%',
+    alignItems: 'center',
+    justifyContent: 'center', // Ensures content is centered
+    shadowColor: '#000', // Shadow color
+    shadowOffset: { width: 0, height: 4 }, // Shadow position
+    shadowOpacity: 0.3, // Shadow transparency
+    shadowRadius: 4, // Shadow blur
+    elevation: 5, // For Android shadow
+  },
+  
+  bookicon: {
+    width: 35,
+    height: 35,
+    alignSelf: 'center',
   },
   
 });

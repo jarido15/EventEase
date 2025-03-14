@@ -50,6 +50,7 @@ import EditServiceScreen from './components/PlannerScreen/PlannerEditService';
 import MyEventsScreen from './components/ClientScreens/MyEvent';
 import BookingScreen from './components/ClientScreens/BookingScreen';
 import FavoriteScreen from './components/ClientScreens/FavoriteScreen';
+import CompleteService from './components/ClientScreens/CompleteService';
 
 
 
@@ -273,6 +274,7 @@ export default function App() {
         
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
         <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
+        <Stack.Screen name="CompleteService" component={CompleteService}  />
 
 
 
