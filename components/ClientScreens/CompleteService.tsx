@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, ActivityIndicator, Alert, StyleSheet,
-  TouchableOpacity, Image, TextInput, ScrollView
+  TouchableOpacity, Image, TextInput, ScrollView,
+  Modal,
+  Button
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+import StarRating from 'react-native-star-rating-widget';
+import { auth } from '../../firebaseConfig';
 
 const CompleteService = () => {
   const [bookings, setBookings] = useState([]);
   const [filteredBookings, setFilteredBookings] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [selectedBooking, setSelectedBooking] = useState(null); // ✅ FIXED missing state
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -42,7 +50,16 @@ const CompleteService = () => {
               paymentTimestamp = paymentData.timestamp ? paymentData.timestamp.toDate().toLocaleString() : 'N/A';
             }
 
-            return { ...bookingData, paymentTimestamp };
+            // Check if the user has already rated this booking
+            const ratingSnapshot = await firestore()
+              .collection('Ratings')
+              .where('bookingId', '==', bookingData.id)
+              .where('userId', '==', auth().currentUser?.uid)  // Check for ratings by the current user
+              .get();
+
+            const isRated = !ratingSnapshot.empty; // True if the user has rated this booking
+
+            return { ...bookingData, paymentTimestamp, isRated }; // Add the isRated flag
           })
         );
 
@@ -73,6 +90,65 @@ const CompleteService = () => {
     }
   };
 
+  const toggleModal = (booking = null) => {
+    setSelectedBooking(booking);
+    setIsModalVisible(!isModalVisible);
+  };
+
+  const handleRatingSubmit = async () => {
+    if (!selectedBooking) {
+      Alert.alert('Error', 'No booking selected.');
+      return;
+    }
+
+    const userId = auth().currentUser?.uid;
+    if (!userId) {
+      Alert.alert('Error', 'User not authenticated.');
+      return;
+    }
+
+    try {
+      // Check if supplierId is present in selectedBooking
+      if (!selectedBooking.supplierId) {
+        Alert.alert('Error', 'Supplier ID is missing in the booking.');
+        return;
+      }
+
+      // Fetch the supplier document by matching supplierId with Supplier collection document ID
+      const supplierRef = firestore().collection('Supplier').doc(selectedBooking.supplierId);
+      const supplierDoc = await supplierRef.get();
+
+      if (!supplierDoc.exists) {
+        Alert.alert('Error', 'Supplier not found.');
+        return;
+      }
+
+      // Extract BusinessName from the supplier document
+      const businessName = supplierDoc.data().BusinessName || 'Unknown';
+
+      // Save the rating to Firestore
+      await firestore().collection('Ratings').add({
+        bookingId: selectedBooking.id,  // Include the bookingId here
+        serviceName: selectedBooking.serviceName,
+        supplierName: selectedBooking.supplierName,
+        supplierId: selectedBooking.supplierId,
+        BusinessName: businessName,  // Correct field name
+        rating: rating,
+        comment: comment,
+        userId: userId,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+      });
+
+      Alert.alert('Success', 'Rating submitted successfully!');
+      setIsModalVisible(false);
+      setRating(0);
+      setComment('');
+    } catch (error) {
+      console.error('Error submitting rating:', error);
+      Alert.alert('Error', 'Failed to submit rating. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -96,6 +172,13 @@ const CompleteService = () => {
         <Text style={styles.servicePrice}>Service Price: ${item.servicePrice}</Text>
         <Text style={styles.status}>Status: {item.status}</Text>
         <Text style={styles.timestamp}>Payment Date: {item.paymentTimestamp}</Text>
+
+        {/* Show the "Rate Service" button only if the booking has not been rated yet */}
+        {!item.isRated && (
+          <TouchableOpacity style={styles.rateButton} onPress={() => toggleModal(item)}>
+            <Text style={styles.rateButtonText}>Rate Service</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -121,8 +204,32 @@ const CompleteService = () => {
         data={filteredBookings}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        ListEmptyComponent={<Text style={styles.emptyMessage}>No paid bookings found.</Text>}
+        ListEmptyComponent={<Text style={styles.emptyMessage}>No completed bookings yet.</Text>}
       />
+
+<Modal visible={isModalVisible} transparent animationType="slide">
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Rate Service</Text>
+      <StarRating rating={rating} onChange={setRating} starSize={30} />
+      <TextInput
+        style={styles.commentInput}
+        placeholder="Write a comment"
+        value={comment}
+        onChangeText={setComment}
+        multiline
+      />
+
+      <TouchableOpacity style={styles.submitButton} onPress={handleRatingSubmit}>
+        <Text style={styles.submitButtonText}>Submit Rating</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.closeButton} onPress={toggleModal}>
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
+    </View>
+  </View>
+</Modal>
+
     </View>
   );
 };
@@ -185,7 +292,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     overflow: 'hidden',
-    maxHeight: 500, // Set a max height
+    maxHeight: 800, // Set a max height
   },
   bookingContent: {
     flexGrow: 1,
@@ -258,6 +365,63 @@ const styles = StyleSheet.create({
     color: '#777',
     textAlign: 'center',
     marginTop: 20,
+  },
+  rateButton: { backgroundColor: '#5392DD', padding: 10, borderRadius: 10, marginTop: 10 },
+  rateButtonText: { color: '#fff', textAlign: 'center', fontSize: 16 },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // semi-transparent background
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  commentInput: {
+    width: '100%',
+    height: 100,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+    textAlignVertical: 'top',
+  },
+  submitButton: {
+    backgroundColor: '#4CAF50', // Green
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#f44336', // Red
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
