@@ -16,7 +16,7 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
-import firestore from '@react-native-firebase/firestore';
+import firestore, { collection, getDocs } from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
 import functions from "@react-native-firebase/functions";
 import auth from '@react-native-firebase/auth';
@@ -45,6 +45,7 @@ const SearchScreen = () => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [eventDuration, setEventDuration] = useState(new Date());
 const [showDurationPicker, setShowDurationPicker] = useState(false);
+const [ratings, setRatings] = useState([]);  // All ratings data
 
 
   useEffect(() => {
@@ -69,7 +70,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
               id: serviceDoc.id,
               supplierId: doc.id,
               ...serviceData,
-              supplierName: supplierData.fullName,
+              supplierName: supplierData.supplierName,
               Location: supplierData.Location,
             });
           });
@@ -355,6 +356,52 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
       setEventDuration(selectedDate);
     }
   };
+
+   // Fetch all ratings
+   const fetchRatings = async () => {
+    try {
+      const snapshot = await firestore().collection("Ratings").get();
+      const ratingsData = snapshot.docs.map(doc => doc.data());
+      setRatings(ratingsData);
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+    }
+  };
+  
+
+  const mergeRatingsWithServices = () => {
+    const ratingsMap = ratings.reduce((acc, rating) => {
+      const key = `${rating.serviceName}-${rating.supplierName}`;
+      if (!acc[key]) {
+        acc[key] = { total: 0, count: 0 };
+      }
+      acc[key].total += rating.rating;
+      acc[key].count += 1;
+      return acc;
+    }, {});
+  
+    // Calculate the average ratings
+    const servicesWithRatings = services.map(service => {
+      const key = `${service.serviceName}-${service.supplierName}`;
+      const averageRating = ratingsMap[key]
+        ? (ratingsMap[key].total / ratingsMap[key].count).toFixed(1)
+        : "No Ratings";
+  
+      return { ...service, averageRating };
+    });
+  
+    setFilteredServices(servicesWithRatings);
+  };
+
+  useEffect(() => {
+    fetchRatings();
+  }, []);
+  
+  useEffect(() => {
+    if (services.length > 0 && ratings.length > 0) {
+      mergeRatingsWithServices();
+    }
+  }, [services, ratings]);
   
   
 
@@ -398,6 +445,7 @@ const [showDurationPicker, setShowDurationPicker] = useState(false);
               <Image source={{ uri: item.imageUrl }} style={styles.image} />
               <View style={styles.cardContent}>
                 <Text style={styles.serviceName}>{item.serviceName}</Text>
+                <Text style={styles.supplierName}>⭐ {item.averageRating}</Text>
                 <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
                 <Text style={styles.location}>Location: {item.Location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
