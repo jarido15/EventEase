@@ -9,10 +9,13 @@ import {
   Alert,
   StyleSheet,
   ScrollView,
+  Image,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'react-native-image-picker';
 
 const SupplierProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -21,6 +24,7 @@ const SupplierProfileScreen = () => {
   const [editData, setEditData] = useState({});
   const user = auth().currentUser;
   const navigation = useNavigation();
+
   useEffect(() => {
     const user = auth().currentUser;
     if (user) {
@@ -29,8 +33,6 @@ const SupplierProfileScreen = () => {
       console.log('No user is logged in');
     }
   }, []);
-  
-  
 
   useEffect(() => {
     if (user) {
@@ -75,7 +77,7 @@ const SupplierProfileScreen = () => {
       Alert.alert('Error', 'No user is currently signed in.');
       return;
     }
-  
+
     try {
       await auth().signOut();
       setProfile(null);
@@ -88,8 +90,29 @@ const SupplierProfileScreen = () => {
       Alert.alert('Error', 'Failed to log out. Please try again.');
     }
   };
-  
-  
+
+  const uploadImage = async (uri: string, path: string) => {
+    const reference = storage().ref(path);
+    await reference.putFile(uri);
+    return await reference.getDownloadURL();
+  };
+
+  const handleImagePicker = async (field: string) => {
+    const result = await ImagePicker.launchImageLibrary({
+      mediaType: 'photo',
+      quality: 1,
+    });
+
+    if (result.didCancel) {
+      console.log('User cancelled image picker');
+    } else if (result.error) {
+      console.log('ImagePicker Error: ', result.error);
+    } else {
+      const uri = result.assets[0].uri;
+      const downloadURL = await uploadImage(uri, `Supplier/${user.uid}/${field}`);
+      handleEdit(field, downloadURL);
+    }
+  };
 
   if (loading) {
     return (
@@ -109,13 +132,22 @@ const SupplierProfileScreen = () => {
       </View>
 
       {profile ? (
-        <View style={styles.card}>
-          <ProfileItem label="Full Name" value={profile.fullName} />
+        <View >
+          <Image
+            source={profile.coverPhoto ? { uri: profile.coverPhoto } : require('../images/default-cover.jpg')}
+            style={styles.coverPhoto}
+          />
+          <Image
+            source={profile.profilePicture ? { uri: profile.profilePicture } : require('../images/profile-account.png')}
+            style={styles.profilePicture}
+          />
+          <ProfileItem label="Full Name" value={profile.supplierName} />
           <ProfileItem label="Email" value={profile.email} />
           <ProfileItem label="Business Name" value={profile.BusinessName} />
           <ProfileItem label="Contact Number" value={profile.ContactNumber} />
           <ProfileItem label="Address" value={profile.Address} />
           <ProfileItem label="Location" value={profile.Location} />
+          <ProfileItem label="Earnings" value={`PHP ${profile.earnings}`} />
         </View>
       ) : (
         <Text style={styles.errorText}>Profile not found</Text>
@@ -126,30 +158,43 @@ const SupplierProfileScreen = () => {
       </TouchableOpacity>
 
       {/* Edit Modal */}
-      {/* <Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
-            {Object.keys(profile).map((key) => (
-              (
-                <TextInput
-                  key={key}
-                  style={styles.input}
-                  placeholder={key}
-                  defaultValue={profile[key]}
-                  onChangeText={(text) => handleEdit(key, text)}
-                />
-              )
-            ))}
-            <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
-              <Text style={styles.saveText}>Save</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.cancelText}>Cancel</Text>
-            </TouchableOpacity>
+            <ScrollView>
+              {Object.keys(profile).map((key) => (
+                key !== 'profilePicture' &&
+                key !== 'coverPhoto' &&
+                key !== 'earnings' &&
+                key !== 'accountStatus' &&
+                key !== 'createdAt' &&
+                key !== 'email' && (
+                  <TextInput
+                    key={key}
+                    style={styles.input}
+                    placeholder={key}
+                    defaultValue={profile[key]}
+                    onChangeText={(text) => handleEdit(key, text)}
+                  />
+                )
+              ))}
+              <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
+                <Text style={styles.uploadText}>Upload Profile Picture</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('coverPhoto')}>
+                <Text style={styles.uploadText}>Upload Cover Photo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
+                <Text style={styles.saveText}>Save</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </View>
-      </Modal> */}
+      </Modal>
     </ScrollView>
   );
 };
@@ -169,15 +214,19 @@ const styles = StyleSheet.create({
   editButton: { backgroundColor: '#007bff', padding: 10, borderRadius: 5 },
   editText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   card: { backgroundColor: 'white', padding: 15, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.1, elevation: 5 },
+  coverPhoto: { width: '100%', height: 200, borderRadius: 10, marginBottom: 15 },
+  profilePicture: { width: 100, height: 100, borderRadius: 50, alignSelf: 'center', marginBottom: 15 },
   itemContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
   label: { fontSize: 16, fontWeight: 'bold', color: '#555' },
-  value: { fontSize: 16, color: '#333' },
+  value: { fontSize: 14, color: '#333', fontWeight: '300' },
   logoutButton: { marginTop: 20, backgroundColor: 'red', padding: 12, borderRadius: 5, alignItems: 'center' },
   logoutText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 10 },
   input: { borderWidth: 1, borderColor: '#ddd', padding: 10, marginBottom: 10, borderRadius: 5 },
+  uploadButton: { backgroundColor: '#007bff', padding: 10, borderRadius: 5, alignItems: 'center', marginBottom: 10 },
+  uploadText: { color: 'white', fontSize: 16 },
   saveButton: { backgroundColor: '#007bff', padding: 10, borderRadius: 5, alignItems: 'center' },
   saveText: { color: 'white', fontSize: 16 },
   cancelButton: { marginTop: 10, backgroundColor: 'gray', padding: 10, borderRadius: 5, alignItems: 'center' },
