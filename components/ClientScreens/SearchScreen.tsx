@@ -21,6 +21,7 @@ import { Picker } from '@react-native-picker/picker';
 import functions from "@react-native-firebase/functions";
 import auth from '@react-native-firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation } from '@react-navigation/native';
 
 const SearchScreen = () => {
   const [services, setServices] = useState([]);
@@ -46,6 +47,7 @@ const SearchScreen = () => {
   const [eventDuration, setEventDuration] = useState(new Date());
 const [showDurationPicker, setShowDurationPicker] = useState(false);
 const [ratings, setRatings] = useState([]);  // All ratings data
+const navigation = useNavigation(); // Get navigation object
 
 
   useEffect(() => {
@@ -403,6 +405,9 @@ const [ratings, setRatings] = useState([]);  // All ratings data
     }
   }, [services, ratings]);
   
+  const viewSupplierProfile = (supplierId) => {
+    navigation.navigate('SupplierProfile', { supplierId });
+  };
   
 
   if (loading) {
@@ -445,19 +450,26 @@ const [ratings, setRatings] = useState([]);  // All ratings data
               <Image source={{ uri: item.imageUrl }} style={styles.image} />
               <View style={styles.cardContent}>
                 <Text style={styles.serviceName}>{item.serviceName}</Text>
+                <Text style={styles.price}> ₱ {item.servicePrice}</Text>
                 <Text style={styles.supplierName}>⭐ {item.averageRating}</Text>
-                <Text style={styles.supplierName}>Supplier: {item.supplierName}</Text>
-                <Text style={styles.location}>Location: {item.Location}</Text>
+                <Text style={styles.location}>Supplier: {item.supplierName}</Text>
+                <Text style={styles.supplierName}>Address: {item.Location}</Text>
+                <Text style={styles.gcash}> Required Down Payment: {item.DownPayment}</Text>
+                <Text style={styles.gcash}> GCash Number: {item.gcashNumber}</Text>
+                <View style={styles.line}/>
                 <Text style={styles.description}>{item.description}</Text>
-                <Text style={styles.description}> Price: {item.servicePrice}</Text>
-                <Text style={styles.description}> Required Down Payment: {item.DownPayment}</Text>
-                <Text style={styles.description}> GCash Number: {item.gcashNumber}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
                   onPress={() => handleBooking(item)}
                 >
                   <Text style={styles.bookButtonText}>Book Now</Text>
                 </TouchableOpacity>
+                <TouchableOpacity 
+                      style={styles.profile} 
+                      onPress={() => viewSupplierProfile(item.supplierId)}
+                    >
+                      <Text style={styles.text}>View Profile</Text>
+                    </TouchableOpacity>
               </View>
             </View>
           )}
@@ -651,7 +663,7 @@ const styles = StyleSheet.create({
   },
   serviceName: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: '#333',
   },
   supplierName: {
@@ -666,20 +678,56 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginTop: 6,
   },
+  line:{
+    width: '100%',
+    alignSelf: 'center',
+    height: 2,
+    backgroundColor: '#5392DD',
+    top: 12,
+  },
   description: {
+    fontSize: 14,
+    color: '#555',
+    marginTop: 40,
+  },
+  gcash: {
     fontSize: 14,
     color: '#555',
     marginTop: 8,
   },
+  price: {
+    fontSize: 20,
+    color: '#000',
+    fontWeight: '600',
+    marginTop: 8,
+  },
   bookButton: {
+    backgroundColor: '#fff',
+    paddingVertical: 12,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: '#5392DD',
+    marginTop: 20,
+    width: '45%',
+  },
+  profile: {
     backgroundColor: '#5392DD',
     paddingVertical: 12,
-    borderRadius: 5,
-    marginTop: 20,
+    borderRadius: 25,
+    bottom: 50,
+    width: '45%',
+    height: 50,
+    left: '55%',
+  },
+  text: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   bookButtonText: {
     fontSize: 16,
-    color: '#fff',
+    color: '#5392DD',
     textAlign: 'center',
     fontWeight: 'bold',
   },

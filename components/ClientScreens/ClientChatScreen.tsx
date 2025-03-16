@@ -69,7 +69,7 @@ const ClientChatScreen = ({ route, navigation }) => {
           <Image source={require('../images/back.png')} style={styles.backIcon} />
         </TouchableOpacity>
         <Image source={user.avatarUrl ? { uri: user.avatarUrl } : require('../images/avatar.png')} style={styles.avatar} />
-        <Appbar.Content title={user.fullName || 'Chat'} titleStyle={styles.headerTitle} />
+        <Appbar.Content title={user.supplierName || 'Chat'} titleStyle={styles.headerTitle} />
       </Appbar.Header>
 
       <FlatList

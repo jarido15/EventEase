@@ -51,6 +51,7 @@ import MyEventsScreen from './components/ClientScreens/MyEvent';
 import BookingScreen from './components/ClientScreens/BookingScreen';
 import FavoriteScreen from './components/ClientScreens/FavoriteScreen';
 import CompleteService from './components/ClientScreens/CompleteService';
+import SupplierProfile from './components/ClientScreens/SupplierProfile';
 
 
 
@@ -271,10 +272,11 @@ export default function App() {
         <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
-        
+
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
         <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
         <Stack.Screen name="CompleteService" component={CompleteService}  />
+        <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />
 
 
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, ScrollView, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
@@ -15,15 +15,17 @@ const ChatScreen = () => {
     const fetchUsers = async () => {
       try {
         const suppliersSnapshot = await firestore().collection('Supplier').get();
-        const plannerSnapshot = await firestore().collection('Planner').get();
+        const plannersSnapshot = await firestore().collection('Planner').get();
 
         const suppliers = suppliersSnapshot.docs.map((doc) => ({
           id: doc.id,
+          type: 'Supplier', // Identifies this as a Supplier
           ...doc.data(),
         }));
 
-        const planners = plannerSnapshot.docs.map((doc) => ({
+        const planners = plannersSnapshot.docs.map((doc) => ({
           id: doc.id,
+          type: 'Planner', // Identifies this as a Planner
           ...doc.data(),
         }));
 
@@ -43,7 +45,7 @@ const ChatScreen = () => {
     setSearchQuery(query);
     if (query) {
       const filtered = chatUsers.filter((user) =>
-        (user.supplierName || "").toLowerCase().includes(query.toLowerCase())
+        ((user.supplierName || user.fullName || "").toLowerCase().includes(query.toLowerCase()))
       );
       setFilteredUsers(filtered);
     } else {
@@ -58,50 +60,55 @@ const ChatScreen = () => {
         <Appbar.Content title="Messages" titleStyle={styles.headerTitle} />
       </Appbar.Header>
 
-      {/* Note */}
-      <Text style={styles.note}>
-        These are all the suppliers you can chat with. You can search for a specific supplier using the search bar below.
-      </Text>
+      {/* Scrollable Content */}
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.note}>
+          These are all the suppliers and planners you can chat with. Use the search bar below to find a specific contact.
+        </Text>
 
-      {/* Search Bar */}
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search Suppliers..."
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
+        {/* Search Bar */}
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+        />
 
-      {/* Chat List */}
-      <FlatList
-        data={filteredUsers}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.chatItem}
-            onPress={() => navigation.navigate('ClientChatScreen', { user: item })}
-          >
-            <Image
-              source={
-                item.avatar
-                  ? { uri: item.avatar }
-                  : require('../images/avatar.png') // Local fallback image
-              }
-              style={styles.avatar}
-              onError={(e) => console.log('Image Load Error:', e.nativeEvent.error)}
-            />
-            <View style={styles.chatInfo}>
-              <Text style={styles.name} numberOfLines={1}>
-                {item.supplierName || 'No Name'}
-              </Text>
-              <Text style={styles.lastMessage} numberOfLines={1}>
-                {item.lastMessage || 'No messages yet'}
-              </Text>
-            </View>
-            <Text style={styles.time}>{item.time || ''}</Text>
-          </TouchableOpacity>
-        )}
-        contentContainerStyle={styles.scrollContainer}
-      />
+        {/* Chat List */}
+        <FlatList
+          data={filteredUsers}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.chatItem}
+              onPress={() => navigation.navigate('ClientChatScreen', { user: item })}
+            >
+              <Image
+                source={
+                  item.avatar
+                    ? { uri: item.avatar }
+                    : require('../images/avatar.png') // Local fallback image
+                }
+                style={styles.avatar}
+                onError={(e) => console.log('Image Load Error:', e.nativeEvent.error)}
+              />
+              <View style={styles.chatInfo}>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.type === 'Supplier' 
+                    ? `Supplier: ${item.supplierName || 'No Name'}` 
+                    : `Planner: ${item.fullName || 'No Name'}`
+                  }
+                </Text>
+                <Text style={styles.lastMessage} numberOfLines={1}>
+                  {item.lastMessage || 'No messages yet'}
+                </Text>
+              </View>
+              <Text style={styles.time}>{item.time || ''}</Text>
+            </TouchableOpacity>
+          )}
+          scrollEnabled={false} // Prevents double scroll inside ScrollView
+        />
+      </ScrollView>
     </View>
   );
 };
@@ -135,13 +142,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#FFFFFF',
   },
+  scrollContainer: {
+    paddingTop: 80, // Avoids overlapping with Appbar
+    paddingBottom: 20,
+  },
   note: {
     padding: 10,
     fontSize: 14,
     color: '#555',
     textAlign: 'center',
-    marginTop: 10,
-    bottom: '-8%',
   },
   searchInput: {
     height: 40,
@@ -152,10 +161,6 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingLeft: 15,
     backgroundColor: '#fff',
-    bottom: '-8%',
-  },
-  scrollContainer: {
-    paddingBottom: 10, // Ensure space at the bottom of the list
   },
   chatItem: {
     flexDirection: 'row',
@@ -170,14 +175,13 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
-    top: '75%',
   },
   avatar: {
     width: 55,
     height: 55,
     borderRadius: 27.5,
     borderWidth: 2,
-    borderColor: '#ddd', // Adds a clean border
+    borderColor: '#ddd',
     marginRight: 15,
   },
   chatInfo: {
