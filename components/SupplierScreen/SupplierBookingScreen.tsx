@@ -286,41 +286,54 @@ const OngoingScreen = () => {
     setSelectedService(service);
     setModalVisible(true);
   };
-
   const finishService = async () => {
     if (!selectedService) return;
-
+  
     setUpdating(true);
     try {
       const batch = firestore().batch();
       const bookingRef = firestore()
         .collection('Bookings')
         .doc(selectedService.id);
-
+  
       // Update the booking status to 'Finished'
-      batch.update(bookingRef, { status: 'Finished' });
-
+      batch.update(bookingRef, { status: 'Paid' });
+  
       // Get the serviceId from the selectedService
       const serviceId = selectedService.serviceId;
-
+  
       // Update the service status in Supplier -> Services
       const serviceRef = firestore()
         .collection('Supplier')
         .doc(user.uid)
         .collection('Services')
         .doc(serviceId);
-
+  
       // Remove the specific eventDate and eventDuration from the unavailableDates array
       const unavailableDates = firestore.FieldValue.arrayRemove({
         eventDate: selectedService.eventDate,
         eventDuration: selectedService.eventDuration,
       });
-
+  
       batch.update(serviceRef, { unavailableDates });
-
+  
+      // Fetch current earnings
+      const supplierRef = firestore().collection('Supplier').doc(user.uid);
+      const supplierDoc = await supplierRef.get();
+      const currentEarnings = parseFloat(supplierDoc.data()?.earnings || '0');
+  
+      // Convert servicePrice to a number
+      const servicePrice = parseFloat(selectedService.servicePrice);
+  
+      // Add servicePrice to current earnings
+      const newEarnings = currentEarnings + servicePrice;
+  
+      // Update supplier's earnings
+      batch.update(supplierRef, { earnings: newEarnings });
+  
       // Commit batch updates
       await batch.commit();
-
+  
       Alert.alert('Success', 'Service and Booking have been updated to Finished!');
       setModalVisible(false);
     } catch (error) {
@@ -330,7 +343,6 @@ const OngoingScreen = () => {
       setUpdating(false);
     }
   };
-
 
 
   return (
@@ -389,7 +401,7 @@ const OngoingScreen = () => {
                   onPress={finishService}
                   disabled={updating}
                 >
-                  <Text style={styles.acceptButtonText}>{updating ? 'Updating...' : 'Finish'}</Text>
+                  <Text style={styles.acceptButtonText}>{updating ? 'Updating...' : 'Finished'}</Text>
                 </TouchableOpacity>
 
                 {/* 🔹 Close Button */}
@@ -418,28 +430,33 @@ const FinishScreen = () => {
 
   useEffect(() => {
     if (user) {
-      fetchPendingServices();
+      const unsubscribe = fetchPendingServices();
+      return () => unsubscribe();
     }
   }, [user]);
 
-  const fetchPendingServices = async () => {
+  const fetchPendingServices = () => {
     setLoading(true);
     try {
-      const snapshot = await firestore()
+      const unsubscribe = firestore()
         .collection('Bookings')
         .where('supplierId', '==', user.uid)
-        .where('status', '==', 'Finished')
-        .get();
-
-      const servicesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-
-      setPendingServices(servicesList);
+        .where('status', '==', 'Paid')
+        .onSnapshot(snapshot => {
+          const servicesList = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setPendingServices(servicesList);
+          setLoading(false);
+        }, error => {
+          console.error('Error fetching finished services:', error);
+          setLoading(false);
+        });
+  
+      return () => unsubscribe();
     } catch (error) {
-      console.error('Error fetching Finished services:', error);
-    } finally {
+      console.error('Error fetching finished services:', error);
       setLoading(false);
     }
   };
