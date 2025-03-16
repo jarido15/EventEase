@@ -7,10 +7,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { getFCMToken, requestUserPermission } from '../Notification/notificationService';
 
-const Events = [
-  { id: '1', name: 'Birthday Party', clientName: 'John Doe', date: 'March 10, 2025' },
-  { id: '2', name: 'Anniversary Celebration', clientName: 'Emma Smith', date: 'June 15, 2025' },
-];
+
 
 const SupplierHomeScreen = () => {
   const [services, setServices] = useState([]);
@@ -21,38 +18,61 @@ const SupplierHomeScreen = () => {
 const [historyCount, setHistoryCount] = useState(0);
 
 
-  // Function to fetch services
-  const fetchServices = async () => {
-    setLoading(true);
-    try {
-      const snapshot = await firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .orderBy('createdAt', 'desc')
+const fetchServices = async () => {
+  setLoading(true);
+  try {
+    const snapshot = await firestore()
+      .collection('Supplier')
+      .doc(user.uid)
+      .collection('Services')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const servicesList = await Promise.all(snapshot.docs.map(async doc => {
+      const serviceData = doc.data();
+      const ratingsSnapshot = await firestore()
+        .collection('Ratings')
+        .where('supplierId', '==', doc.id)
         .get();
 
-      const servicesList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const ratings = ratingsSnapshot.docs.map(ratingDoc => ratingDoc.data().rating);
+      const averageRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'No ratings';
 
-      setServices(servicesList);
-    } catch (error) {
-      console.error('Error fetching services:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+        id: doc.id,
+        ...serviceData,
+        averageRating,
+      };
+    }));
+
+    setServices(servicesList);
+  } catch (error) {
+    console.error('Error fetching services:', error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Refresh data when screen is focused
+  const fetchRatings = async () => {
+    try {
+      const ratingsSnapshot = await firestore()
+        .collection('Ratings')
+        .where('supplierId', '==', user.uid)
+        .get();
 
+      const ratings = ratingsSnapshot.docs.map(doc => doc.data());
+      console.log('Ratings:', ratings);
+    } catch (error) {
+      console.error('Error fetching ratings:', error);
+    }
+  };
    
   useEffect(() => {
     if (user) {
       fetchCounts();
-  
-
+      fetchServices();
+      fetchRatings();
       // Set up a real-time listener
       const unsubscribe = firestore()
         .collection('Supplier')
@@ -113,15 +133,14 @@ const [historyCount, setHistoryCount] = useState(0);
   
       // Fetch number of completed or cancelled services (history)
       const historySnapshot = await firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .where('status', 'in', ['Finished', 'Cancelled']) // Fetch both finished and cancelled
-        .get();
-      setHistoryCount(historySnapshot.size);
-    } catch (error) {
-      console.error('Error fetching counts:', error);
-    }
+      .collection('Bookings')
+      .where('supplierId', '==', user.uid)
+      .where('status', '==', 'Paid')
+      .get();
+    setHistoryCount(historySnapshot.size);
+  } catch (error) {
+    console.error('Error fetching counts:', error);
+  }
   };
 
   return (
@@ -130,7 +149,7 @@ const [historyCount, setHistoryCount] = useState(0);
       <Appbar.Header style={styles.header}>
   <Appbar.Content title="Supplier Dashboard" titleStyle={styles.headerTitle} />
   <TouchableOpacity onPress={() => navigation.navigate('SupplierProfileScreen')}>
-    <Avatar.Image size={40} source={require('../images/user.png')} />
+    <Avatar.Image size={40} source={require('../images/profile-account.png')} />
   </TouchableOpacity>
 </Appbar.Header>
 
@@ -173,6 +192,7 @@ const [historyCount, setHistoryCount] = useState(0);
                     <Card.Content>
                       <Text style={styles.serviceTitle}>{item.serviceName || 'No Name'}</Text>
                       <Text style={styles.servicePrice}>Php {item.servicePrice || 'N/A'}</Text>
+                      <Text style={styles.serviceRating}>Rating: {item.averageRating}</Text> {/* Display average rating */}
                     </Card.Content>
                   </Card>
                 </TouchableOpacity>
@@ -293,6 +313,11 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 16,
     color: 'white',
+  },
+  serviceRating: {
+    fontSize: 16,
+    color: '#ffcc00',
+    marginTop: 5,
   },
   
 });

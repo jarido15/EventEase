@@ -31,6 +31,8 @@ const SupplierRegister = ({ navigation }) => {
       await firestore().collection('Supplier').doc(user.uid).set({
         supplierName,
         email,
+        earnings: 0, // Add earnings field as a number with value 0
+        accountStatus: 'pending', // Add accountStatus field as pending
         createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
       });
 
