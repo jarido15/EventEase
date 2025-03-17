@@ -10,13 +10,14 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  FlatList, // Use FlatList for better performance
+  FlatList,
 } from 'react-native';
 import { auth, firestore } from '../../firebaseConfig';
 
 const HomeScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
   const [events, setEvents] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -28,30 +29,60 @@ const HomeScreen = ({ navigation }) => {
           if (userDoc.exists) {
             setFullName(userDoc.data().fullName);
           }
-  
+
           // Fetch only events with "Upcoming" status
           const eventsSnapshot = await userDocRef
             .collection("MyEvent")
             .where("status", "==", "Upcoming") // Filter for Upcoming events only
             .get();
-  
+
           const fetchedEvents = eventsSnapshot.docs.map((doc) => ({
             id: doc.id,
             ...doc.data(),
             eventDate: doc.data().eventDate,
             venueType: doc.data().venueType,
           }));
-  
+
           setEvents(fetchedEvents);
         } catch (error) {
           console.error("Error fetching user data:", error);
         }
       }
     };
-  
+
     fetchUserData();
   }, []);
-  
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+
+    const user = auth().currentUser;
+    if (user && query.trim()) {
+      try {
+        const userDocRef = firestore().collection("Clients").doc(user.uid);
+        const eventsSnapshot = await userDocRef
+          .collection("MyEvent")
+          .where("status", "==", "Upcoming")
+          .where("eventName", ">=", query)
+          .where("eventName", "<=", query + '\uf8ff') // to do a case-insensitive search
+          .get();
+
+        const filteredEvents = eventsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          eventDate: doc.data().eventDate,
+          venueType: doc.data().venueType,
+        }));
+
+        setEvents(filteredEvents);
+      } catch (error) {
+        console.error("Error searching events:", error);
+      }
+    } else if (!query.trim()) {
+      // If search query is empty, fetch all upcoming events
+      fetchUserData();
+    }
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -66,8 +97,10 @@ const HomeScreen = ({ navigation }) => {
           {/* Search Bar */}
           <TextInput
             style={styles.searchBar}
-            placeholder="Search for events or services..."
+            placeholder="Search for events..."
             placeholderTextColor="#888"
+            value={searchQuery}
+            onChangeText={handleSearch}
           />
 
           {/* Quick Access */}
@@ -136,7 +169,7 @@ const styles = StyleSheet.create({
   greetingText: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#5392DD', // Updated color
+    color: '#5392DD',
   },
   subheadingText: {
     fontSize: 16,
@@ -221,7 +254,7 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#5392DD', // Updated color
+    color: '#5392DD',
   },
   eventDetails: {
     fontSize: 14,

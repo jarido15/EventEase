@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, Image, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, TextInput, Modal, TouchableWithoutFeedback } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native'; // For navigation
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const SupplierProfile = ({ route }) => {
   const { supplierId } = route.params;
@@ -10,6 +11,18 @@ const SupplierProfile = ({ route }) => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState({});
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+  const [eventDate, setEventDate] = useState(new Date());
+  const [eventTime, setEventTime] = useState(new Date());
+  const [eventDuration, setEventDuration] = useState(new Date());
+  const [eventName, setEventName] = useState('');
+  const [eventPlace, setEventPlace] = useState('');
+  const [venueType, setVenueType] = useState('');
+  const [referenceNumber, setReferenceNumber] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
   const navigation = useNavigation(); // Hook for navigation
 
   useEffect(() => {
@@ -20,29 +33,53 @@ const SupplierProfile = ({ route }) => {
         if (doc.exists) {
           setSupplier(doc.data());
         }
-
+  
         // Fetch services from the subcollection
         const servicesSnapshot = await firestore()
           .collection('Supplier')
           .doc(supplierId)
           .collection('Services')
           .get();
-
+  
         const servicesList = servicesSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
-
+  
         setServices(servicesList);
+  
+        // Fetch ratings from the Ratings collection
+        const ratingsSnapshot = await firestore()
+          .collection('Ratings')
+          .where('supplierId', '==', supplierId)
+          .get();
+  
+        if (!ratingsSnapshot.empty) {
+          // Calculate overall rating
+          const ratingsList = ratingsSnapshot.docs.map(doc => doc.data().rating);
+          const totalRating = ratingsList.reduce((sum, rating) => sum + rating, 0);
+          const averageRating = totalRating / ratingsList.length;
+          
+          setSupplier(prevSupplier => ({
+            ...prevSupplier,
+            averageRating: averageRating.toFixed(1) // Save average rating
+          }));
+        } else {
+          setSupplier(prevSupplier => ({
+            ...prevSupplier,
+            averageRating: 'No Ratings'
+          }));
+        }
       } catch (error) {
-        console.error('Error fetching supplier profile or services:', error);
+        console.error('Error fetching supplier profile, services, or ratings:', error);
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchSupplierData();
   }, [supplierId]);
+  
 
   const addToFavorites = async (serviceName, supplierName) => {
     const user = auth().currentUser;
@@ -109,9 +146,80 @@ const SupplierProfile = ({ route }) => {
     }
   };
 
+  
+
   const handleBooking = (service) => {
-    // Implement the booking logic here
-    Alert.alert('Booking Service', `Booking ${service.serviceName}`);
+    setSelectedService(service);
+    setModalVisible(true);
+  };
+
+  const handleSubmitBooking = async () => {
+    try {
+      const currentUser = auth().currentUser;
+      if (!currentUser) {
+        Alert.alert("Error", "You must be logged in to book a service.");
+        return;
+      }
+
+      if (!selectedService?.supplierId) {
+        Alert.alert("Error", "Supplier ID is missing. Please try again.");
+        return;
+      }
+
+      if (!eventDate || !eventDuration) {
+        Alert.alert("Error", "Please select both event date and event duration.");
+        return;
+      }
+
+      const trimmedEventName = eventName.trim();
+
+      const myEventSnapshot = await firestore()
+        .collection("Clients")
+        .doc(currentUser.uid)
+        .collection("MyEvent")
+        .where("status", "==", "Upcoming")
+        .get({ source: "server" });
+
+      if (myEventSnapshot.empty) {
+        Alert.alert("Error", "No 'Upcoming' event found for this booking.");
+        return;
+      }
+
+      const matchingEvent = myEventSnapshot.docs.find(doc => doc.data().eventName.trim() === trimmedEventName);
+
+      if (!matchingEvent) {
+        Alert.alert("Error", `No matching event found with the name: ${trimmedEventName}`);
+        return;
+      }
+
+      const bookingData = {
+        uid: currentUser.uid,
+        serviceId: selectedService.id || "",
+        supplierId: selectedService.supplierId || "",
+        serviceName: selectedService.serviceName || "",
+        supplierName: selectedService.supplierName || "",
+        location: selectedService.location || "",
+        servicePrice: selectedService.servicePrice || 0,
+        imageUrl: selectedService.imageUrl || "",
+        timestamp: firestore.FieldValue.serverTimestamp(),
+        status: "Pending",
+        eventTime: eventTime.toISOString().split("T")[1].slice(0, 5),
+        eventDate: formattedEventDate,
+        eventPlace: eventPlace || "",
+        venueType: venueType || "",
+        referenceNumber: referenceNumber || "",
+        eventName: eventName || "",
+        eventDuration: formattedEventEndDate, // Store eventDuration as formatted date
+      };
+
+      await firestore().collection("Bookings").add(bookingData);
+
+      setModalVisible(false);
+      Alert.alert("Success", "Service booked successfully!");
+    } catch (error) {
+      console.error("Error booking service:", error);
+      Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
+    }
   };
 
   if (loading) {
@@ -182,6 +290,104 @@ const SupplierProfile = ({ route }) => {
         )}
         ListEmptyComponent={<Text style={styles.noServices}>No services available</Text>}
       />
+ <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}></View>
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContainer}>
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Event Date"
+              value={eventDate.toLocaleDateString()}
+              onFocus={() => setShowDatePicker(true)}
+            />
+            {showDatePicker && (
+              <DateTimePicker
+                value={eventDate}
+                mode="date"
+                display="default"
+                onChange={(event, date) => {
+                  setEventDate(date || eventDate);
+                  setShowDatePicker(false);
+                }}
+              />
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Event Duration"
+              value={eventDuration.toLocaleDateString()}
+              onFocus={() => setShowDurationPicker(true)}
+            />
+            {showDurationPicker && (
+              <DateTimePicker
+                value={eventDuration}
+                mode="date"
+                display="default"
+                onChange={(event, date) => {
+                  setEventDuration(date || eventDuration);
+                  setShowDurationPicker(false);
+                }}
+              />
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Event Time"
+              value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              onFocus={() => setShowTimePicker(true)}
+            />
+            {showTimePicker && (
+              <DateTimePicker
+                value={eventTime}
+                mode="time"
+                display="default"
+                onChange={(event, date) => {
+                  setEventTime(date || eventTime);
+                  setShowTimePicker(false);
+                }}
+              />
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Event Name"
+              value={eventName}
+              onChangeText={setEventName}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Event Place"
+              value={eventPlace}
+              onChangeText={setEventPlace}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Venue Type"
+              value={venueType}
+              onChangeText={setVenueType}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="GCash Reference Number"
+              value={referenceNumber}
+              onChangeText={setReferenceNumber}
+            />
+
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
+              <Text style={styles.submitButtonText}>Submit Booking</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+      </Modal>
+
     </View>
   );
 };
@@ -217,6 +423,55 @@ const styles = StyleSheet.create({
   bookButtonText: { color: '#fff', fontWeight: 'bold' },
   noServices: { fontSize: 16, fontStyle: 'italic', color: 'gray', textAlign: 'center', marginTop: 20 },
   noSupplier: { fontSize: 18, color: '#ff6347', textAlign: 'center', marginTop: 50 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    marginTop: 'auto',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    flex: 1,
+  },
+  modalContent: {
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 10,
+    fontSize: 16,
+    backgroundColor: '#fafafa',
+  },
+  submitButton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 18,
+  },
+  closeButton: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#888',
+    fontSize: 16,
+    textDecorationLine: 'underline',
+  },
 });
 
 export default SupplierProfile;
