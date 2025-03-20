@@ -52,6 +52,7 @@ import BookingScreen from './components/ClientScreens/BookingScreen';
 import FavoriteScreen from './components/ClientScreens/FavoriteScreen';
 import CompleteService from './components/ClientScreens/CompleteService';
 import SupplierProfile from './components/ClientScreens/SupplierProfile';
+import SearchPlannerScreen from './components/ClientScreens/SearchPlanner';
 
 
 
@@ -92,8 +93,8 @@ function BottomTabs() {
             <Image
               source={iconSource}
               style={{
-                width: 24,
-                height: 24,
+                width: 27,
+                height: 25.5,
                 tintColor: focused ? '#5392DD' : 'gray',
               }}
             />
@@ -274,6 +275,7 @@ export default function App() {
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
 
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
+        <Stack.Screen name="SearchPlanner" component={SearchPlannerScreen} />
         <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
         <Stack.Screen name="CompleteService" component={CompleteService}  />
         <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />

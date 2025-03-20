@@ -127,7 +127,7 @@ const BookingsScreen = () => {
             // Alert user about the cancellation
             Alert.alert(
               "Booking Update",
-              `Your booking for ${cancelledBooking.serviceName} has been cancelled, due to reason: ${cancelledBooking.cancelReason || "No reason provided."}`
+              `Your booking for ${cancelledBooking.serviceName} has been cancelled, due to reason: ${cancelledBooking.cancelReason || "No reason provided, Your Downpayment will be return within 72 hours, Thank You."}`
             );
   
             // Optionally, add the cancelled booking to the `viewedCancellations` set
@@ -306,102 +306,91 @@ const BookingsScreen = () => {
   };
 
   const handleCancelBooking = async (bookingId, serviceId, supplierId) => {
-    try {
-      // 1. Fetch the booking details from the Bookings collection
-      const bookingSnapshot = await firestore()
-        .collection('Bookings')
-        .doc(bookingId)
-        .get();
+    Alert.alert(
+      "Cancel Booking", 
+      "Are you sure you want to cancel this booking?", 
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          onPress: async () => {
+            try {
+              // 1. Fetch the booking details from the Bookings collection
+              const bookingSnapshot = await firestore()
+                .collection("Bookings")
+                .doc(bookingId)
+                .get();
   
-      if (!bookingSnapshot.exists) {
-        Alert.alert('Error', 'Booking not found.');
-        return;
-      }
+              if (!bookingSnapshot.exists) {
+                Alert.alert("Error", "Booking not found.");
+                return;
+              }
   
-      const bookingData = bookingSnapshot.data();
-      const { eventDate, eventDuration } = bookingData; // Getting eventDate and eventDuration from booking
+              const bookingData = bookingSnapshot.data();
+              const { eventDate, eventDuration } = bookingData;
   
-      console.log('Booking eventDate:', eventDate);
-      console.log('Booking eventDuration:', eventDuration);
+              if (!eventDate || !eventDuration) {
+                Alert.alert("Error", "Event date or event duration is missing in the booking.");
+                return;
+              }
   
-      if (!eventDate || !eventDuration) {
-        Alert.alert('Error', 'Event date or event duration is missing in the booking.');
-        return;
-      }
+              // 2. Fetch the Supplier's service and get the current unavailableDates array
+              const serviceSnapshot = await firestore()
+                .collection("Supplier")
+                .doc(supplierId)
+                .collection("Services")
+                .doc(serviceId)
+                .get();
   
-      // 2. Fetch the Supplier's service and get the current unavailableDates array
-      const serviceSnapshot = await firestore()
-        .collection('Supplier')
-        .doc(supplierId)
-        .collection('Services')
-        .doc(serviceId)
-        .get();
+              if (!serviceSnapshot.exists) {
+                Alert.alert("Error", "Service not found.");
+                return;
+              }
   
-      if (!serviceSnapshot.exists) {
-        Alert.alert('Error', 'Service not found.');
-        return;
-      }
+              const serviceData = serviceSnapshot.data();
+              const unavailableDates = serviceData.unavailableDates || [];
   
-      const serviceData = serviceSnapshot.data();
-      const unavailableDates = serviceData.unavailableDates || [];
+              // 3. Format the eventDate and eventDuration
+              const formattedEventDateStr = eventDate;
+              const formattedEventDurationStr = eventDuration;
   
-      console.log('Fetched unavailableDates:', unavailableDates);
+              // 4. Check if the eventDate and eventDuration exist in unavailableDates
+              const updatedUnavailableDates = unavailableDates.map((date) =>
+                date.eventDate === formattedEventDateStr && date.eventDuration === formattedEventDurationStr
+                  ? { eventDate: "00-00-00", eventDuration: "00-00-00" }
+                  : date
+              );
   
-      // 3. Format the eventDate and eventDuration to 'yy-mm-dd' string format (assumed to be in correct format)
-      const formattedEventDateStr = eventDate; // Assume eventDate is already in 'yy-mm-dd' format
-      const formattedEventDurationStr = eventDuration; // Assume eventDuration is already in 'yy-mm-dd' format
+              // 5. If no update is made, show an alert
+              if (updatedUnavailableDates.every((date) => date.eventDate !== "00-00-00" || date.eventDuration !== "00-00-00")) {
+                Alert.alert("No update needed", "The selected event date and duration were not found in unavailableDates.");
+                return;
+              }
   
-      console.log('Booking eventDate:', formattedEventDateStr);
-      console.log('Booking eventDuration:', formattedEventDurationStr);
+              // 6. Update the unavailableDates array in Firestore
+              await firestore()
+                .collection("Supplier")
+                .doc(supplierId)
+                .collection("Services")
+                .doc(serviceId)
+                .update({ unavailableDates: updatedUnavailableDates });
   
-      // 4. Check if the eventDate and eventDuration from Bookings exist in unavailableDates
-      const updatedUnavailableDates = unavailableDates.map(date => {
-        console.log('Checking unavailable date:', date);
+              // 7. Delete the booking from the Bookings collection
+              await firestore().collection("Bookings").doc(bookingId).delete();
   
-        // Log the eventDate and eventDuration fields in unavailableDates to ensure correct matching
-        console.log('Unavailable Date eventDate:', date.eventDate);
-        console.log('Unavailable Date eventDuration:', date.eventDuration);
-  
-        // Check if eventDate and eventDuration match
-        if (date.eventDate === formattedEventDateStr && date.eventDuration === formattedEventDurationStr) {
-          console.log('Match found, updating date and duration to 00-00-00');
-          return {
-            eventDate: '00-00-00',
-            eventDuration: '00-00-00'
-          };
-        }
-        return date;
-      });
-  
-      // 5. If no update is made (i.e., the date and duration were not found), show an alert
-      if (updatedUnavailableDates.every(date => date.eventDate !== '00-00-00' || date.eventDuration !== '00-00-00')) {
-        Alert.alert('No update needed', 'The selected event date and duration were not found in unavailableDates.');
-        return;
-      }
-  
-      // 6. Update the unavailableDates array in Firestore
-      await firestore()
-        .collection('Supplier')
-        .doc(supplierId)
-        .collection('Services')
-        .doc(serviceId)
-        .update({
-          unavailableDates: updatedUnavailableDates,
-        });
-  
-      // 7. Delete the booking from the Bookings collection
-      await firestore()
-        .collection('Bookings')
-        .doc(bookingId)
-        .delete();
-  
-      Alert.alert('Success', 'Booking has been cancelled and the service date updated.');
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      Alert.alert('Error', error.message || 'There was an issue cancelling the booking.');
-    }
+              Alert.alert("Success", "Booking has been cancelled and the service date updated.");
+            } catch (error) {
+              console.error("Error cancelling booking:", error);
+              Alert.alert("Error", error.message || "There was an issue cancelling the booking.");
+            }
+          },
+        },
+      ]
+    );
   };
-  
   
   
 
@@ -495,12 +484,14 @@ const BookingsScreen = () => {
               style={styles.input}
               placeholder="GCash Number"
               value={gcashNumber}
+              placeholderTextColor={'#888'}
               editable={false} // Disable editing for the gcashNumber
             />
             <TextInput
               style={styles.input}
               placeholder="Enter Reference Number"
               value={referenceNumber}
+              placeholderTextColor={'#888'}
               onChangeText={setReferenceNumber}
             />
             <TextInput
@@ -508,6 +499,7 @@ const BookingsScreen = () => {
               placeholder="Enter Amount"
               value={amount}
               onChangeText={setAmount}
+              placeholderTextColor={'#888'}
               keyboardType="numeric"
             />
             <View style={styles.modalActions}>

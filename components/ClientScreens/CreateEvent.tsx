@@ -123,6 +123,7 @@ const CreateEvent = ({ navigation }) => {
             style={styles.input}
             placeholder="Event Name"
             value={eventName}
+            placeholderTextColor={'#888'}
             onChangeText={setEventName}
           />
 
@@ -165,6 +166,7 @@ const CreateEvent = ({ navigation }) => {
             style={styles.input}
             placeholder="Venue"
             value={venue}
+            placeholderTextColor={'#888'}
             onChangeText={setVenue}
           />
 

@@ -422,6 +422,11 @@ const navigation = useNavigation(); // Get navigation object
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Available Services</Text>
+       <TouchableOpacity onPress={() => navigation.navigate('SearchPlanner')}>
+      <View style={styles.plannercontainer}>
+        <Image source={require('../images/graph.png')} style={styles.icon}/>
+      </View>
+      </TouchableOpacity>
       <TextInput
         style={styles.searchBar}
         placeholder="Search services or suppliers..."
@@ -533,6 +538,7 @@ const navigation = useNavigation(); // Get navigation object
         style={styles.input}
         placeholder="Enter Event Name"
         value={eventName}
+        placeholderTextColor={'#888'}
         onChangeText={seteventName}
       />
 
@@ -540,12 +546,14 @@ const navigation = useNavigation(); // Get navigation object
         style={styles.input}
         placeholder="Enter Event Place"
         value={eventPlace}
+        placeholderTextColor={'#888'}
         onChangeText={setEventPlace}
       />
       <TextInput
         style={styles.input}
         placeholder="Enter Venue Type"
         value={venueType}
+        placeholderTextColor={'#888'}
         onChangeText={setVenueType}
       />
       <Text style={styles.label}>Select Event Category:</Text>
@@ -569,6 +577,7 @@ const navigation = useNavigation(); // Get navigation object
         style={styles.input}
         placeholder="Enter GCash Reference Number"
         value={referenceNumber}
+        placeholderTextColor={'#888'}
         onChangeText={setreferenceNumber}
       />
 
@@ -603,7 +612,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: -150,
     color: '#007AFF',
   },
   searchBar: {
@@ -611,6 +620,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 12,
     marginBottom: 15,
+    width: '80%',
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#5392DD',
@@ -773,6 +783,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     fontWeight: 'bold',
+  },
+  plannercontainer: {
+    borderRadius: 25,
+    height: '27%',
+    width: '20%',
+    left: '82%',
+    top: '98%',
+    alignContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#5392DD',
+  },
+  icon:{
+    width: 35,
+    height: 35,
+    top: '10%',
   },
 });
 
