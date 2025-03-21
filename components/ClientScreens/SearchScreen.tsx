@@ -491,6 +491,7 @@ const navigation = useNavigation(); // Get navigation object
     <ScrollView contentContainerStyle={styles.modalContent}>
       <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
 
+      <Text style={styles.label}>Event Start Date:</Text>
       <TextInput
         style={styles.input}
         placeholder="Event Date"
@@ -506,6 +507,7 @@ const navigation = useNavigation(); // Get navigation object
         />
       )}
 
+<Text style={styles.label}> Event End Date:</Text>
       <TextInput
         style={styles.input}
         placeholder="Event Duration (YYYY-MM-DD)"
@@ -521,6 +523,7 @@ const navigation = useNavigation(); // Get navigation object
         />
       )}
 
+ <Text style={styles.label}>Event Time:</Text>
       <TextInput
         style={styles.input}
         placeholder="Event Time"
@@ -536,6 +539,7 @@ const navigation = useNavigation(); // Get navigation object
         />
       )}
 
+<Text style={styles.label}>Event Name:</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter Event Name"
@@ -544,6 +548,7 @@ const navigation = useNavigation(); // Get navigation object
         onChangeText={seteventName}
       />
 
+<Text style={styles.label}>Event Place:</Text>
       <TextInput
         style={styles.input}
         placeholder="Enter Event Place"
@@ -551,13 +556,18 @@ const navigation = useNavigation(); // Get navigation object
         placeholderTextColor={'#888'}
         onChangeText={setEventPlace}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Venue Type"
-        value={venueType}
-        placeholderTextColor={'#888'}
-        onChangeText={setVenueType}
-      />
+
+      <Text style={styles.label}>Select Event Venue Type:</Text>
+      <Picker
+        selectedValue={venueType}
+        style={styles.picker1}
+        onValueChange={(itemValue) => setserviceName(itemValue)}
+      >
+        <Picker.Item label="Select Venue" value="" />
+        <Picker.Item label="Indoor" value="Indoor" />
+        <Picker.Item label="Outdoor" value="Outdoor" />
+      </Picker>
+
       <Text style={styles.label}>Select Event Category:</Text>
       <Picker
         selectedValue={serviceName}
@@ -630,7 +640,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
+    color: '#5392DD',
     marginTop: 10,
   },
   picker1: {
