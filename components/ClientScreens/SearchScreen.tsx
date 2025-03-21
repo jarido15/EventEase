@@ -1,3 +1,4 @@
+/* eslint-disable no-trailing-spaces */
 /* eslint-disable react/self-closing-comp */
 /* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
@@ -237,9 +238,10 @@ const navigation = useNavigation(); // Get navigation object
       const eventEndDate = new Date(eventDuration); // Event end date
   
       // Check if eventDuration is later than eventDate
-      if (eventEndDate <= eventStartDate) {
-        throw new Error("Event duration must be later than the event start date.");
+      if (eventEndDate < eventStartDate) {
+        throw new Error("Event duration must be the same day or later than the event start date.");
       }
+      
   
       const formattedEventDate = eventStartDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
       const formattedEventEndDate = eventEndDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
