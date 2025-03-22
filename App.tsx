@@ -53,6 +53,7 @@ import FavoriteScreen from './components/ClientScreens/FavoriteScreen';
 import CompleteService from './components/ClientScreens/CompleteService';
 import SupplierProfile from './components/ClientScreens/SupplierProfile';
 import SearchPlannerScreen from './components/ClientScreens/SearchPlanner';
+import ViewBookedServices from './components/ClientScreens/ViewBookedServices';
 
 
 
@@ -279,6 +280,7 @@ export default function App() {
         <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
         <Stack.Screen name="CompleteService" component={CompleteService}  />
         <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />
+        <Stack.Screen name="ViewBookedServices" component={ViewBookedServices} />
 
 
 

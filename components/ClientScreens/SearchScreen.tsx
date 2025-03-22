@@ -17,7 +17,7 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
-import firestore, { collection, getDocs } from '@react-native-firebase/firestore';
+import firestore, { collection, firebase, getDocs } from '@react-native-firebase/firestore';
 import { Picker } from '@react-native-picker/picker';
 import functions from "@react-native-firebase/functions";
 import auth from '@react-native-firebase/auth';
@@ -49,6 +49,7 @@ const SearchScreen = () => {
 const [showDurationPicker, setShowDurationPicker] = useState(false);
 const [ratings, setRatings] = useState([]);  // All ratings data
 const navigation = useNavigation(); // Get navigation object
+const [suggestions, setSuggestions] = useState([]);
 
 
   useEffect(() => {
@@ -410,6 +411,37 @@ const navigation = useNavigation(); // Get navigation object
   const viewSupplierProfile = (supplierId) => {
     navigation.navigate('SupplierProfile', { supplierId });
   };
+
+  useEffect(() => {
+    // Fetch event name suggestions when the user types in the event name input
+    if (eventName.length > 2) {
+      const fetchSuggestions = async () => {
+        const userUid = firebase.auth().currentUser?.uid; // Get current user UID
+  
+        if (!userUid) return; // Return early if no user is logged in
+  
+        try {
+          const eventNamesSnapshot = await firebase
+            .firestore()
+            .collection('Clients') // Collection of clients
+            .doc(userUid) // The document of the current logged-in user
+            .collection('MyEvent') // The subcollection where events are stored
+            .where('eventName', '>=', eventName) // Filter events starting with the input
+            .where('eventName', '<=', eventName + '\uf8ff') // Case-insensitive matching
+            .get();
+  
+          const events = eventNamesSnapshot.docs.map(doc => doc.data().eventName);
+          setSuggestions(events);
+        } catch (error) {
+          console.error('Error fetching event names:', error);
+        }
+      };
+  
+      fetchSuggestions();
+    } else {
+      setSuggestions([]);
+    }
+  }, [eventName]);
   
 
   if (loading) {
@@ -484,121 +516,138 @@ const navigation = useNavigation(); // Get navigation object
       )}
 
 <Modal visible={modalVisible} animationType="slide" transparent={true}>
-  <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-    <View style={styles.modalOverlay}></View>
-  </TouchableWithoutFeedback>
-  <View style={styles.modalContainer}>
-    <ScrollView contentContainerStyle={styles.modalContent}>
-      <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+      <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+        <View style={styles.modalOverlay}></View>
+      </TouchableWithoutFeedback>
+      <View style={styles.modalContainer}>
+        <FlatList
+          data={['dummy']} // Placeholder to render the form fields
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={() => (
+            <>
+              <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
 
-      <Text style={styles.label}>Event Start Date:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Event Date"
-        value={eventDate.toLocaleDateString()}
-        onFocus={showDatePickerHandler}
-      />
-      {showDatePicker && (
-        <DateTimePicker
-          value={eventDate}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
+              <Text style={styles.label}>Event Start Date:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Date"
+                value={eventDate.toLocaleDateString()}
+                onFocus={showDatePickerHandler}
+              />
+              {showDatePicker && (
+                <DateTimePicker
+                  value={eventDate}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event End Date:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Duration (YYYY-MM-DD)"
+                value={eventDuration.toLocaleDateString()}
+                onFocus={() => setShowDurationPicker(true)}
+              />
+              {showDurationPicker && (
+                <DateTimePicker
+                  value={eventDuration}
+                  mode="date"
+                  display="default"
+                  onChange={handleDurationChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event Time:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Time"
+                value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                onFocus={showTimePickerHandler}
+              />
+              {showTimePicker && (
+                <DateTimePicker
+                  value={eventTime}
+                  mode="time"
+                  display="default"
+                  onChange={handleTimeChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event Name:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Event Name"
+                value={eventName}
+                placeholderTextColor={'#888'}
+                onChangeText={seteventName}
+              />
+              {suggestions.length > 0 && (
+                <FlatList
+                  data={suggestions}
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => seteventName(item)}>
+                      <Text style={styles.suggestionItem}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+
+              <Text style={styles.label}>Event Place:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Event Place"
+                value={eventPlace}
+                placeholderTextColor={'#888'}
+                onChangeText={setEventPlace}
+              />
+
+              <Text style={styles.label}>Select Event Venue Type:</Text>
+              <Picker
+                selectedValue={venueType}
+                style={styles.picker1}
+                onValueChange={(itemValue) => setserviceName(itemValue)}
+              >
+                <Picker.Item label="Select Venue" value="" />
+                <Picker.Item label="Indoor" value="Indoor" />
+                <Picker.Item label="Outdoor" value="Outdoor" />
+              </Picker>
+
+              <Text style={styles.label}>Select Event Category:</Text>
+              <Picker
+                selectedValue={serviceName}
+                style={styles.picker1}
+                onValueChange={(itemValue) => setserviceName(itemValue)}
+              >
+                <Picker.Item label="Select Category" value="" />
+                <Picker.Item label="Food and Beverage" value="Food and Beverage" />
+                <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
+                <Picker.Item label="Entertainment" value="Entertainment" />
+                <Picker.Item label="Decor and Styling" value="Decor and Styling" />
+                <Picker.Item label="Photography and Videography" value="Photography and Videography" />
+                <Picker.Item label="Event and Rentals" value="Event and Rentals" />
+                <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
+                <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
+              </Picker>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Enter GCash Reference Number"
+                value={referenceNumber}
+                placeholderTextColor={'#888'}
+                onChangeText={setreferenceNumber}
+              />
+
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
+                <Text style={styles.submitButtonText}>Submit Booking</Text>
+              </TouchableOpacity>
+            </>
+          )}
         />
-      )}
-
-<Text style={styles.label}> Event End Date:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Event Duration (YYYY-MM-DD)"
-        value={eventDuration.toLocaleDateString()} // Display in readable format
-        onFocus={() => setShowDurationPicker(true)}
-      />
-      {showDurationPicker && (
-        <DateTimePicker
-          value={eventDuration}
-          mode="date" // ✅ Full date picker
-          display="default"
-          onChange={handleDurationChange}
-        />
-      )}
-
- <Text style={styles.label}>Event Time:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Event Time"
-        value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        onFocus={showTimePickerHandler}
-      />
-      {showTimePicker && (
-        <DateTimePicker
-          value={eventTime}
-          mode="time"
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
-
-<Text style={styles.label}>Event Name:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Event Name"
-        value={eventName}
-        placeholderTextColor={'#888'}
-        onChangeText={seteventName}
-      />
-
-<Text style={styles.label}>Event Place:</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Event Place"
-        value={eventPlace}
-        placeholderTextColor={'#888'}
-        onChangeText={setEventPlace}
-      />
-
-      <Text style={styles.label}>Select Event Venue Type:</Text>
-      <Picker
-        selectedValue={venueType}
-        style={styles.picker1}
-        onValueChange={(itemValue) => setserviceName(itemValue)}
-      >
-        <Picker.Item label="Select Venue" value="" />
-        <Picker.Item label="Indoor" value="Indoor" />
-        <Picker.Item label="Outdoor" value="Outdoor" />
-      </Picker>
-
-      <Text style={styles.label}>Select Event Category:</Text>
-      <Picker
-        selectedValue={serviceName}
-        style={styles.picker1}
-        onValueChange={(itemValue) => setserviceName(itemValue)}
-      >
-        <Picker.Item label="Select Category" value="" />
-        <Picker.Item label="Food and Beverage" value="Food and Beverage" />
-        <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
-        <Picker.Item label="Entertainment" value="Entertainment" />
-        <Picker.Item label="Decor and Styling" value="Decor and Styling" />
-        <Picker.Item label="Photography and Videography" value="Photography and Videography" />
-        <Picker.Item label="Event and Rentals" value="Event and Rentals" />
-        <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
-        <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
-      </Picker>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Enter GCash Reference Number"
-        value={referenceNumber}
-        placeholderTextColor={'#888'}
-        onChangeText={setreferenceNumber}
-      />
-
-      <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
-        <Text style={styles.submitButtonText}>Submit Booking</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  </View>
-</Modal>
+      </View>
+    </Modal>
 
     </View>
   );
@@ -664,6 +713,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#777',
     marginTop: 20,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
   card: {
     backgroundColor: '#fff',

@@ -14,12 +14,14 @@ import firestore from "@react-native-firebase/firestore";
 import auth from "@react-native-firebase/auth";
 import { useNavigation } from "@react-navigation/native";
 
+
 const MyEventsScreen = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
   const user = auth().currentUser;
   const navigation = useNavigation();
+
 
   useEffect(() => {
     if (!user?.uid) {
@@ -86,6 +88,25 @@ const MyEventsScreen = () => {
       .update({
         completedServices: event.completedServices,
       });
+  };
+  
+  const fetchBookingDetails = async (eventName) => {
+    try {
+      const snapshot = await firestore()
+        .collection("Bookings")
+        .where("eventName", "==", eventName)
+        .get();
+  
+      if (!snapshot.empty) {
+        setBookingDetails(snapshot.docs[0].data()); // Assuming eventName is unique
+        setModalVisible(true);
+      } else {
+        alert("No booking details found.");
+      }
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      alert("Failed to fetch booking details.");
+    }
   };
   
 
@@ -236,13 +257,31 @@ const MyEventsScreen = () => {
                       <Text style={styles.completeButtonText}>Event Complete</Text>
                     </TouchableOpacity>
                   )}
+            {selectedTab !== "Previous" && (
+              <TouchableOpacity
+  style={[styles.completeButton, { backgroundColor: "#FF8C00" }]}
+  onPress={() =>
+    navigation.navigate("ViewBookedServices", {
+      eventName: item.eventName,
+      eventImage: item.eventImage,
+      eventDate: item.eventDate,
+    })
+  }
+>
+  <Text style={styles.completeButtonText}>View Booked Services</Text>
+</TouchableOpacity>
+
+)}
+
+
                 </View>
-              </View>
+                              </View>
             );
           }}
           showsVerticalScrollIndicator={false}
         />
       )}
+
     </View>
   );
 };
@@ -405,6 +444,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "bold",
   },
+  
 });
 
 export default MyEventsScreen;
