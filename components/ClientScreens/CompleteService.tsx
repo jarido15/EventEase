@@ -138,6 +138,17 @@ const CompleteService = () => {
         userId: userId,
         timestamp: firestore.FieldValue.serverTimestamp(),
       });
+      await firestore().collection('Supplier').doc(selectedBooking.supplierId).collection('Services').doc(selectedBooking.serviceId).collection('Rating').add({
+        bookingId: selectedBooking.id,  // Include the bookingId here
+        serviceName: selectedBooking.serviceName,
+        supplierName: selectedBooking.supplierName,
+        supplierId: selectedBooking.supplierId,
+        BusinessName: businessName,  // Correct field name
+        rating: rating,
+        comment: comment,
+        userId: userId,
+        timestamp: firestore.FieldValue.serverTimestamp(),
+      });
 
       Alert.alert('Success', 'Rating submitted successfully!');
       setIsModalVisible(false);
