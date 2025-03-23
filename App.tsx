@@ -55,6 +55,7 @@ import SupplierProfile from './components/ClientScreens/SupplierProfile';
 import SearchPlannerScreen from './components/ClientScreens/SearchPlanner';
 import ViewBookedServices from './components/ClientScreens/ViewBookedServices';
 import PaymentMethodScreen from './components/ClientScreens/PaymentMethodScreen';
+import ForgotPasswordScreen from './components/ForgotPassword';
 
 
 
@@ -283,6 +284,7 @@ export default function App() {
         <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />
         <Stack.Screen name="ViewBookedServices" component={ViewBookedServices} />
         <Stack.Screen name="PaymentMethodScreen" component={PaymentMethodScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
 
 
 

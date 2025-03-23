@@ -29,7 +29,7 @@ const LoginScreen = ({ navigation }) => {
       // Firebase Authentication Login
       await auth().signInWithEmailAndPassword(email, password);
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Main'); // Change 'Home' to your next screen
+      navigation.navigate('Main'); // Change 'Main' to your next screen
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
@@ -40,6 +40,7 @@ const LoginScreen = ({ navigation }) => {
       }
     }
   };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -47,12 +48,11 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
 
-        <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
-
-        <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
-        <Image source={require('../images/arrow.png')} style={styles.arrow}/>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
+            <Image source={require('../images/arrow.png')} style={styles.arrow} />
+          </TouchableOpacity>
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -75,13 +75,18 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={styles.registerText}>Don't have an account?</Text>
             <Text style={styles.register}>Sign Up</Text>
+          </TouchableOpacity>
+
+          {/* Forgot Password link */}
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -100,18 +105,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
   },
-    eclipse: {
-      width: 230,
-      height: 240,
-      bottom: '15%',
-      right: '22%',
-    },
-    arrow:{
-      width: 40,
-      height: 36,
-      right: '40%',
-      bottom: 280,
-    },
+  eclipse: {
+    width: 230,
+    height: 240,
+    bottom: '15%',
+    right: '22%',
+  },
+  arrow: {
+    width: 40,
+    height: 36,
+    right: '40%',
+    bottom: 280,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -159,6 +164,12 @@ const styles = StyleSheet.create({
     color: '#5392DD',
     top: '170%',
     left: '30%',
+  },
+  forgotPasswordText: {
+    color: '#5392DD',
+    marginTop: 15,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

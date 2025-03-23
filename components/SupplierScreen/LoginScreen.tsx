@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform, TouchableWithoutFeedback, Keyboard, Image } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
+  Image
+} from 'react-native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore'; // Add this import
+import firestore from '@react-native-firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -38,6 +51,29 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert('Error', error.message);
       }
     }
+  };
+
+  const handleForgotPassword = () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email to reset the password');
+      return;
+    }
+
+    // Send password reset email
+    auth()
+      .sendPasswordResetEmail(email)
+      .then(() => {
+        Alert.alert('Success', 'Password reset email sent!');
+      })
+      .catch(error => {
+        if (error.code === 'auth/invalid-email') {
+          Alert.alert('Error', 'Invalid email address');
+        } else if (error.code === 'auth/user-not-found') {
+          Alert.alert('Error', 'No user found with this email');
+        } else {
+          Alert.alert('Error', error.message);
+        }
+      });
   };
 
   return (
@@ -82,6 +118,11 @@ const LoginScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
             <Text style={styles.registerText}>Don't have an account?</Text>
             <Text style={styles.register}>Sign Up</Text>
+          </TouchableOpacity>
+
+          {/* Forgot Password */}
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -159,6 +200,12 @@ const styles = StyleSheet.create({
     color: '#5392DD',
     top: '170%',
     left: '30%',
+  },
+  forgotPassword: {
+    color: '#5392DD',
+    marginTop: 15,
+    textAlign: 'center',
+    fontSize: 14,
   },
 });
 

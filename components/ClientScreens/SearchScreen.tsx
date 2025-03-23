@@ -474,12 +474,12 @@ const [suggestions, setSuggestions] = useState([]);
                 >
                   <Text style={styles.bookButtonText}>Book Now</Text>
                 </TouchableOpacity>
-                <TouchableOpacity 
+                {/* <TouchableOpacity 
                       style={styles.profile} 
                       onPress={() => viewSupplierProfile(item.supplierId)}
                     >
                       <Text style={styles.text}>View Profile</Text>
-                    </TouchableOpacity>
+                    </TouchableOpacity> */}
               </View>
             </View>
           )}
