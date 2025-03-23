@@ -38,8 +38,8 @@ const SupplierChat = () => {
   return (
     <View style={styles.container}>
       {/* App Bar */}
-      <Appbar.Header>
-        <Appbar.Content title="Messages" />
+      <Appbar.Header style={styles.appBar}>
+        <Appbar.Content title="Messages" titleStyle={styles.appBarTitle} />
       </Appbar.Header>
 
       {/* Chat List */}
@@ -51,11 +51,10 @@ const SupplierChat = () => {
             style={styles.chatItem}
             onPress={() => navigation.navigate('SupplierChatScreen', { user: item })}
           >
-            <Image source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
+            <Image source={require('../images/usericon.png')} style={styles.avatar} />
             <View style={styles.chatInfo}>
               {/* Display user name */}
               <Text style={styles.name}>{item.fullName || 'No Name'}</Text>
-              <Text style={styles.lastMessage}>{item.lastMessage || 'No message yet'}</Text>
             </View>
             <Text style={styles.time}>{item.time || ''}</Text>
           </TouchableOpacity>
@@ -69,6 +68,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  appBar: {
+    backgroundColor: '#003049', // Add your desired background color here
+  },
+  appBarTitle: {
+    color: '#fdf0d5', // Change the title color to #fdf0d5
+    fontSize: 16,
   },
   chatItem: {
     flexDirection: 'row',

@@ -546,11 +546,57 @@ const FinishScreen = () => {
   );
 };
 
-const CancelledScreen = () => (
-  <ScrollView contentContainerStyle={styles.screenContainer}>
-    <BookingCard name="Cancelled" date="April 20, 2025" />
-  </ScrollView>
-);
+const CancelledScreen = () => {
+  const [cancelledServices, setCancelledServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const user = auth().currentUser;
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = firestore()
+        .collection('Bookings')
+        .where('supplierId', '==', user.uid)
+        .where('status', '==', 'Cancelled')
+        .onSnapshot(snapshot => {
+          const servicesList = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setCancelledServices(servicesList);
+          setLoading(false);
+        }, error => {
+          console.error('Error fetching cancelled services:', error);
+          setLoading(false);
+        });
+
+      return () => unsubscribe();
+    }
+  }, [user]);
+
+  return (
+    <ScrollView contentContainerStyle={styles.topAlignedContainer}>
+      {loading ? (
+        <ActivityIndicator size="large" color="#007bff" />
+      ) : cancelledServices.length === 0 ? (
+        <Text style={styles.emptyText}>No cancelled services found.</Text>
+      ) : (
+        cancelledServices.map(service => (
+          <View key={service.id} style={styles.card}>
+            <Text style={styles.cardTitle}>
+              <Text style={styles.bold}>Service:</Text> {service.serviceName}
+            </Text>
+            <Text style={styles.cardTitle}>
+              <Text style={styles.bold}>Date:</Text> {service.eventDate}
+            </Text>
+            <Text style={styles.cardTitle}>
+              <Text style={styles.bold}>Reason:</Text> {service.cancelReason || 'No reason provided'}
+            </Text>
+          </View>
+        ))
+      )}
+    </ScrollView>
+  );
+};
 
 const Tab = createMaterialTopTabNavigator();
 
@@ -585,7 +631,7 @@ const SupplierBookingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white',
+    backgroundColor: '#003049',
   },
   title: {
     fontSize: 24,
@@ -593,7 +639,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 40,
     marginBottom: 20,
-    color: '#333',
+    color: '#fdf0d5',
   },
   bottomSheetContainer: {
     flex: 1,

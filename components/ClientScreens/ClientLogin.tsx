@@ -14,6 +14,7 @@ import {
   Image
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -27,9 +28,19 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       // Firebase Authentication Login
-      await auth().signInWithEmailAndPassword(email, password);
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      // Check if the user is in the Clients collection
+      const clientDoc = await firestore().collection('Clients').doc(user.uid).get();
+      if (!clientDoc.exists) {
+        await auth().signOut();
+        Alert.alert('Error', 'You are not authorized to log in as a client');
+        return;
+      }
+
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Main'); // Change 'Home' to your next screen
+      navigation.navigate('Main'); // Change 'Main' to your next screen
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
@@ -40,6 +51,7 @@ const LoginScreen = ({ navigation }) => {
       }
     }
   };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -47,12 +59,12 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
 
-        <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
-
-        <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
-        <Image source={require('../images/arrow.png')} style={styles.arrow}/>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
+            <Image source={require('../images/arrow.png')} style={styles.arrow}/>
+          </TouchableOpacity>
+          
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -75,7 +87,7 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-            <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <TouchableOpacity style={styles.button} onPress={handleLogin}>
             <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
 
@@ -100,18 +112,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 20,
   },
-    eclipse: {
-      width: 230,
-      height: 240,
-      bottom: '15%',
-      right: '22%',
-    },
-    arrow:{
-      width: 40,
-      height: 36,
-      right: '40%',
-      bottom: 280,
-    },
+  eclipse: {
+    width: 230,
+    height: 240,
+    bottom: '15%',
+    right: '22%',
+  },
+  arrow: {
+    width: 40,
+    height: 36,
+    right: '40%',
+    bottom: 280,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -151,7 +163,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   registerText: {
-    color: '#888',
+    color: '#000',
     top: '220%',
     right: '8%',
   },

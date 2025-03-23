@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth'; // For getting current user ID
 import { Appbar } from 'react-native-paper'; // Import Appbar from react-native-paper
@@ -52,10 +52,15 @@ const PlannerChatScreen = ({ route, navigation }) => {
   return (
     <View style={styles.container}>
       {/* App Bar */}
-      <Appbar.Header>
-  
-        <Appbar.Content title={user.fullName || 'Chat'} />
-      </Appbar.Header>
+     {/* Custom Header */}
+          <Appbar.Header style={styles.appBar}>
+            <View style={styles.headerContent}>
+              <TouchableOpacity onPress={() => navigation.goBack()}>
+                <Image source={require('../images/back.png')} style={styles.backButton} />
+              </TouchableOpacity>
+              <Appbar.Content title={user.fullName || 'Chat'} />
+            </View>
+          </Appbar.Header>
 
       {/* Message List */}
       <FlatList
@@ -117,6 +122,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#ddd',
+  },
+  appBar: {
+    backgroundColor: '#669bbc', // Add your desired background color here
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    width: 24,
+    height: 24,
+    tintColor: '#fdf0d5', // Change the tint color to white for better visibility
+    marginRight: 20,
   },
   input: {
     flex: 1,

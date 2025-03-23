@@ -8,33 +8,35 @@ import auth from '@react-native-firebase/auth';
 
 const SupplierRegister2 = ({ navigation }) => {
   const [BusinessName, setBusinessName] = useState('');
-  const [Address, setAddress] = useState('');
   const [Location, setLocation] = useState('');
   const [ContactNumber, setContactNumber] = useState('');
 
   const handleContinue = async () => {
-    if (!BusinessName || !Address || !Location || !ContactNumber) {
+    if (!BusinessName || !Location || !ContactNumber) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
-  
+
+    if (ContactNumber.length !== 11) {
+      Alert.alert('Error', 'Contact number must be 11 digits');
+      return;
+    }
+
     try {
       const user = auth().currentUser; // Get the logged-in user
       if (!user) {
         Alert.alert('Error', 'User not found. Please sign in again.');
-
         return;
       }
-  
+
       await firestore().collection('Supplier').doc(user.uid).update({
         BusinessName,
-        Address,
         Location,
         ContactNumber,
         status: "Pending",
         createdAt: firestore.FieldValue.serverTimestamp(), // Firestore timestamp
       });
-  
+
       Alert.alert('Success', 'Business details saved!');
       navigation.navigate('SupplierCategory');
     } catch (error) {
@@ -50,9 +52,15 @@ const SupplierRegister2 = ({ navigation }) => {
         <Text style={styles.subtitle}>Let's set up your business details.</Text>
 
         <TextInput style={styles.input} placeholder="Business Name" value={BusinessName} onChangeText={setBusinessName} />
-        <TextInput style={styles.input} placeholder="Business Address" value={Address} onChangeText={setAddress} keyboardType='default' />
         <TextInput style={styles.input} placeholder="Location" value={Location} onChangeText={setLocation} />
-        <TextInput style={styles.input} placeholder="Business Contact Number" value={ContactNumber} onChangeText={setContactNumber} keyboardType="number-pad" />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Business Contact Number" 
+          value={ContactNumber} 
+          onChangeText={setContactNumber} 
+          keyboardType="number-pad" 
+          maxLength={11} // Limit input to 11 digits
+        />
 
         <TouchableOpacity style={styles.button} onPress={handleContinue}>
           <Text style={styles.buttonText}>Continue</Text>

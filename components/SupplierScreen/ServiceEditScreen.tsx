@@ -101,12 +101,12 @@ const ServiceEditScreen = () => {
       {/* App Bar */}
       <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#3498db' }}>
   {/* Back Button */}
-  <TouchableOpacity onPress={() => navigation.navigate('SupplierHomeScreen')}>
-    <Icon name="arrow-left" size={24} color="#fff" />
+  <TouchableOpacity onPress={() => navigation.navigate('Suppliermain')}>
+       <Image source={require('../images/back.png')} style={{width: 24, height: 24, tintColor: '#003049' }} />
   </TouchableOpacity>
 
   {/* Title */}
-  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#fff', flex: 1, marginLeft: 10 }}>
+  <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#fff', flex: 1, marginLeft: 20 }}>
     Edit Services
   </Text>
 </View>
@@ -132,7 +132,7 @@ const ServiceEditScreen = () => {
   <TouchableOpacity 
     onPress={pickImage} 
     style={{
-      backgroundColor: 'blue',
+      backgroundColor: '#003049',
       paddingVertical: 10,
       paddingHorizontal: 20,
       borderRadius: 5,
@@ -192,9 +192,9 @@ const ServiceEditScreen = () => {
         />
 
         {/* Buttons */}
-        <Button title="Update Service" onPress={handleUpdate} />
+        <Button title="Update Service" color="#003049" onPress={handleUpdate} />
         <View style={{ marginTop: 10 }}>
-          <Button title="Delete Service" color="red" onPress={handleDelete} />
+          <Button title="Delete Service" color="#c1121f" onPress={handleDelete} />
         </View>
       </ScrollView>
     </View>

@@ -16,6 +16,7 @@ import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'react-native-image-picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const SupplierProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -125,14 +126,17 @@ const SupplierProfileScreen = () => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Supplier Profile</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Suppliermain')}>
+          <Image source={require('../images/back.png')} style={styles.backButton} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Profile</Text>
         <TouchableOpacity style={styles.editButton} onPress={() => setModalVisible(true)}>
-          <Text style={styles.editText}>Edit</Text>
+        <Image source={require('../images/edit.png')} style={styles.backButton} />
         </TouchableOpacity>
       </View>
 
       {profile ? (
-        <View >
+        <View>
           <Image
             source={profile.coverPhoto ? { uri: profile.coverPhoto } : require('../images/default-cover.jpg')}
             style={styles.coverPhoto}
@@ -163,22 +167,24 @@ const SupplierProfileScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
             <ScrollView>
-              {Object.keys(profile).map((key) => (
-                key !== 'profilePicture' &&
-                key !== 'coverPhoto' &&
-                key !== 'earnings' &&
-                key !== 'accountStatus' &&
-                key !== 'createdAt' &&
-                key !== 'email' && (
-                  <TextInput
-                    key={key}
-                    style={styles.input}
-                    placeholder={key}
-                    defaultValue={profile[key]}
-                    onChangeText={(text) => handleEdit(key, text)}
-                  />
-                )
-              ))}
+              {profile &&
+                Object.keys(profile).map(
+                  (key) =>
+                    key !== 'profilePicture' &&
+                    key !== 'coverPhoto' &&
+                    key !== 'earnings' &&
+                    key !== 'accountStatus' &&
+                    key !== 'createdAt' &&
+                    key !== 'email' && (
+                      <TextInput
+                        key={key}
+                        style={styles.input}
+                        placeholder={key}
+                        defaultValue={profile[key]}
+                        onChangeText={(text) => handleEdit(key, text)}
+                      />
+                    )
+                )}
               <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
                 <Text style={styles.uploadText}>Upload Profile Picture</Text>
               </TouchableOpacity>
@@ -210,8 +216,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa', padding: 20 },
   centeredContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontSize: 26, fontWeight: 'bold', color: '#333' },
-  editButton: { backgroundColor: '#007bff', padding: 10, borderRadius: 5 },
+  backButton: { width: 24, height: 24, tintColor: '#003049' },
+  title: { fontSize: 20, fontWeight: '600', color: '#003049' },
+  editButton: { backgroundColor: '#669bbc', padding: 10, borderRadius: 5 },
   editText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   card: { backgroundColor: 'white', padding: 15, borderRadius: 10, shadowColor: '#000', shadowOpacity: 0.1, elevation: 5 },
   coverPhoto: { width: '100%', height: 200, borderRadius: 10, marginBottom: 15 },
@@ -219,7 +226,7 @@ const styles = StyleSheet.create({
   itemContainer: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10 },
   label: { fontSize: 16, fontWeight: 'bold', color: '#555' },
   value: { fontSize: 14, color: '#333', fontWeight: '300' },
-  logoutButton: { marginTop: 20, backgroundColor: 'red', padding: 12, borderRadius: 5, alignItems: 'center' },
+  logoutButton: { marginTop: 20, backgroundColor: '#c1121f', padding: 12, borderRadius: 5, alignItems: 'center' },
   logoutText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { width: '90%', backgroundColor: 'white', padding: 20, borderRadius: 10 },

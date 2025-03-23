@@ -47,18 +47,19 @@ const PlannerChat = () => {
         data={chatUsers}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.chatItem}
-            onPress={() => navigation.navigate('PlannerChatScreen', { user: item })}
-          >
-            <Image source={{ uri: item.avatar || 'https://via.placeholder.com/50' }} style={styles.avatar} />
-            <View style={styles.chatInfo}>
-              {/* Display user name */}
-              <Text style={styles.name}>{item.fullName || 'No Name'}</Text>
-              <Text style={styles.lastMessage}>{item.lastMessage || 'No message yet'}</Text>
-            </View>
-            <Text style={styles.time}>{item.time || ''}</Text>
-          </TouchableOpacity>
+     
+              <TouchableOpacity
+                      style={styles.chatItem}
+                      onPress={() => navigation.navigate('PlannerChatScreen', { user: item })}
+                    >
+                      <Image source={require('../images/usericon.png')} style={styles.avatar} />
+                      <View style={styles.chatInfo}>
+                        {/* Display user name */}
+                        <Text style={styles.name}>{item.fullName || 'No Name'}</Text>
+                       
+                      </View>
+                      <Text style={styles.time}>{item.time || ''}</Text>
+                    </TouchableOpacity>
         )}
       />
     </View>
