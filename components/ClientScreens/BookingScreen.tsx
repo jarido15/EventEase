@@ -433,7 +433,7 @@ const BookingsScreen = () => {
                 <Text style={styles.eventPlace}>Event Place: {item.eventPlace}</Text>
                 <Text style={styles.venueType}>Venue Type: {item.venueType}</Text>
                 <Text style={styles.status}>Status: {item.status}</Text>
-                <Text style={styles.price}>Price: ${item.servicePrice}</Text>
+                <Text style={styles.price}>Price: ₱{item.servicePrice}</Text>
 
                 {/* Add to Favorite button */}
                 <TouchableOpacity

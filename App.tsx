@@ -54,6 +54,7 @@ import CompleteService from './components/ClientScreens/CompleteService';
 import SupplierProfile from './components/ClientScreens/SupplierProfile';
 import SearchPlannerScreen from './components/ClientScreens/SearchPlanner';
 import ViewBookedServices from './components/ClientScreens/ViewBookedServices';
+import PaymentMethodScreen from './components/ClientScreens/PaymentMethodScreen';
 
 
 
@@ -281,6 +282,7 @@ export default function App() {
         <Stack.Screen name="CompleteService" component={CompleteService}  />
         <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />
         <Stack.Screen name="ViewBookedServices" component={ViewBookedServices} />
+        <Stack.Screen name="PaymentMethodScreen" component={PaymentMethodScreen} />
 
 
 

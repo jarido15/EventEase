@@ -73,8 +73,9 @@ const SearchPlannerScreen = () => {
   };
 
   const filteredServices = plannerServices.filter(service =>
-    service.serviceName.toLowerCase().includes(searchQuery.toLowerCase())
+    service.serviceName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
 
   return (
     <View style={styles.container}>

@@ -40,6 +40,7 @@ const SearchScreen = () => {
   const [eventDate, setEventDate] = useState(new Date());
   const [eventPlace, setEventPlace] = useState('');
   const [referenceNumber, setreferenceNumber] = useState('');
+  const [paymentMethod, setpaymentMethod] = useState('');
   const [venueType, setVenueType] = useState('');
   const [eventName, seteventName] = useState('');
   const [serviceName, setserviceName] = useState('');
@@ -139,27 +140,18 @@ const [suggestions, setSuggestions] = useState([]);
   const handleSubmitBooking = async () => {
     try {
       const currentUser = auth().currentUser;
-      console.log("Current User:", currentUser);
-  
       if (!currentUser) {
         Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
   
-      if (!selectedService?.supplierId) {
-        Alert.alert("Error", "Supplier ID is missing. Please try again.");
-        return;
-      }
-  
-      if (!eventDate || !eventDuration) {
-        Alert.alert("Error", "Please select both event date and event duration.");
+      if (!selectedService?.supplierId || !eventDate || !eventDuration) {
+        Alert.alert("Error", "Please fill in all the required fields.");
         return;
       }
   
       const trimmedEventName = eventName.trim();
-      console.log("Searching for upcoming events with name:", trimmedEventName);
   
-      // Query for upcoming events in MyEvent subcollection
       const myEventSnapshot = await firestore()
         .collection("Clients")
         .doc(currentUser.uid)
@@ -167,14 +159,6 @@ const [suggestions, setSuggestions] = useState([]);
         .where("status", "==", "Upcoming")
         .get({ source: "server" });
   
-      console.log("MyEvent Query Results:", myEventSnapshot.docs.map(doc => doc.data()));
-  
-      if (myEventSnapshot.empty) {
-        Alert.alert("Error", "No 'Upcoming' event found for this booking.");
-        return;
-      }
-  
-      // Filter events matching eventName
       const matchingEvent = myEventSnapshot.docs.find(doc => {
         const event = doc.data();
         return event.eventName.trim() === trimmedEventName;
@@ -185,10 +169,6 @@ const [suggestions, setSuggestions] = useState([]);
         return;
       }
   
-      const myEventDoc = matchingEvent.data();
-      console.log("Matching event found:", myEventDoc);
-  
-      // Check if service is already booked at the same time
       const existingBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("serviceId", "==", selectedService.id)
@@ -201,7 +181,6 @@ const [suggestions, setSuggestions] = useState([]);
         return;
       }
   
-      // Check if user already booked this service
       const userBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("uid", "==", currentUser.uid)
@@ -213,7 +192,6 @@ const [suggestions, setSuggestions] = useState([]);
         return;
       }
   
-      // Fetch the selected service's unavailable dates from the Supplier collection -> Services subcollection
       const serviceRef = firestore()
         .collection("Supplier")
         .doc(selectedService.supplierId)
@@ -228,28 +206,16 @@ const [suggestions, setSuggestions] = useState([]);
       const serviceData = serviceDoc.data();
       const unavailableDates = serviceData?.unavailableDates || [];
   
-      // Ensure eventDuration is a valid date object
-      if (!(eventDuration instanceof Date) || isNaN(eventDuration.getTime())) {
-        throw new Error("Invalid event duration. It must be a valid date.");
-      }
-      console.log("Event Duration Date:", eventDuration);
+      const eventStartDate = new Date(eventDate);
+      const eventEndDate = new Date(eventDuration);
   
-      // Calculate the duration between eventDate and eventDuration
-      const eventStartDate = new Date(eventDate); // Event start date
-      const eventEndDate = new Date(eventDuration); // Event end date
-  
-      // Check if eventDuration is later than eventDate
       if (eventEndDate < eventStartDate) {
         throw new Error("Event duration must be the same day or later than the event start date.");
       }
-      
   
-      const formattedEventDate = eventStartDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
-      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0]; // Format to 'YYYY-MM-DD'
-      console.log("Formatted Event Start Date:", formattedEventDate);
-      console.log("Formatted Event End Date:", formattedEventEndDate);
+      const formattedEventDate = eventStartDate.toISOString().split("T")[0];
+      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0];
   
-      // Check if any unavailable date matches the event date or duration
       const isUnavailable = unavailableDates.some(date => {
         return date.eventDate === formattedEventDate || date.eventDuration === formattedEventEndDate;
       });
@@ -259,13 +225,11 @@ const [suggestions, setSuggestions] = useState([]);
         return;
       }
   
-      // **Update unavailable dates** with the new event date and duration
       const newUnavailableDates = [
         ...unavailableDates,
         { eventDate: formattedEventDate, eventDuration: formattedEventEndDate }
       ];
   
-      // Update the service document with the new unavailable dates
       await serviceRef.update({
         unavailableDates: newUnavailableDates
       });
@@ -285,23 +249,30 @@ const [suggestions, setSuggestions] = useState([]);
         eventDate: formattedEventDate,
         eventPlace: eventPlace || "",
         venueType: venueType || "",
+        paymentMethod: paymentMethod || "",
         referenceNumber: referenceNumber || "",
         eventName: eventName || "",
-        eventDuration: formattedEventEndDate, // Store eventDuration as formatted date
+        eventDuration: formattedEventEndDate,
       };
   
-      console.log("Booking Data:", bookingData);
+      const docRef = await firestore().collection("Bookings").add(bookingData);
   
-      // Proceed to book the service
-      await firestore().collection("Bookings").add(bookingData);
-  
-      // Update the service status to Pending
       await serviceRef.update({ status: "Pending" });
   
-      // Send a push notification to the supplier
       await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
   
-      Alert.alert("Success", "Service booked successfully!");
+      // ✅ Navigate to PaymentMethodScreen with booking data
+      navigation.navigate('PaymentMethodScreen', {
+        bookingId: docRef.id,
+        amount: selectedService.servicePrice,
+        referenceNumber,
+        eventName,
+        eventDate: formattedEventDate,
+        eventDuration: formattedEventEndDate,
+        serviceName: selectedService.serviceName,
+      });
+      
+  
       setModalVisible(false);
     } catch (error) {
       console.error("Error booking service:", error);
@@ -608,7 +579,7 @@ const [suggestions, setSuggestions] = useState([]);
               <Picker
                 selectedValue={venueType}
                 style={styles.picker1}
-                onValueChange={(itemValue) => setserviceName(itemValue)}
+                onValueChange={(itemValue) => setVenueType(itemValue)}
               >
                 <Picker.Item label="Select Venue" value="" />
                 <Picker.Item label="Indoor" value="Indoor" />
@@ -631,14 +602,6 @@ const [suggestions, setSuggestions] = useState([]);
                 <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
                 <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
               </Picker>
-
-              <TextInput
-                style={styles.input}
-                placeholder="Enter GCash Reference Number"
-                value={referenceNumber}
-                placeholderTextColor={'#888'}
-                onChangeText={setreferenceNumber}
-              />
 
               <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
                 <Text style={styles.submitButtonText}>Submit Booking</Text>
