@@ -14,6 +14,7 @@ import {
   Image
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -27,7 +28,17 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       // Firebase Authentication Login
-      await auth().signInWithEmailAndPassword(email, password);
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      // Check if the user is in the Clients collection
+      const clientDoc = await firestore().collection('Clients').doc(user.uid).get();
+      if (!clientDoc.exists) {
+        await auth().signOut();
+        Alert.alert('Error', 'You are not authorized to log in as a client');
+        return;
+      }
+
       Alert.alert('Success', `Welcome ${email}!`);
       navigation.navigate('Main'); // Change 'Main' to your next screen
     } catch (error) {
@@ -48,11 +59,20 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+
+          <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
+
+          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
+            <Image source={require('../images/arrow.png')} style={styles.arrow}/>
+          </TouchableOpacity>
+          
+
           <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
 
           <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
             <Image source={require('../images/arrow.png')} style={styles.arrow} />
           </TouchableOpacity>
+
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -156,7 +176,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   registerText: {
-    color: '#888',
+    color: '#000',
     top: '220%',
     right: '8%',
   },
