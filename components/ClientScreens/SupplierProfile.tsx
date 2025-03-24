@@ -1,9 +1,12 @@
+/* eslint-disable no-trailing-spaces */
+/* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, ActivityIndicator, StyleSheet, FlatList, TouchableOpacity, Alert, ScrollView, TextInput, Modal, TouchableWithoutFeedback } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native'; // For navigation
 import DateTimePicker from '@react-native-community/datetimepicker';
+import Picker from 'react-native-picker-select';
 
 const SupplierProfile = ({ route }) => {
   const { supplierId } = route.params;
@@ -12,7 +15,7 @@ const SupplierProfile = ({ route }) => {
   const [loading, setLoading] = useState(true);
   const [favorites, setFavorites] = useState({});
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
   const [eventDuration, setEventDuration] = useState(new Date());
@@ -24,6 +27,20 @@ const SupplierProfile = ({ route }) => {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showDurationPicker, setShowDurationPicker] = useState(false);
   const navigation = useNavigation(); // Hook for navigation
+  const [suggestions, setSuggestions] = useState([]);
+
+  interface Service {
+    id: string;
+    supplierId: string;
+    serviceName: string;
+    servicePrice: number;
+    imageUrl: string;
+    description: string;
+    location: string;
+    supplierName: string;
+    [key: string]: any; // To account for any other fields
+  }
+  
 
   useEffect(() => {
     const fetchSupplierData = async () => {
@@ -146,13 +163,49 @@ const SupplierProfile = ({ route }) => {
     }
   };
 
-  
 
-  const handleBooking = (service) => {
-    setSelectedService(service);
+  const showDatePickerHandler = () => {
+    setShowDatePicker(true);
+  };
+
+  const showTimePickerHandler = () => {
+    setShowTimePicker(true);
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setEventDate(selectedDate);
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setEventTime(selectedTime);
+    }
+  };
+
+  const handleDurationChange = (event, selectedDate) => {
+    setShowDurationPicker(false);
+    if (selectedDate) {
+      setEventDuration(selectedDate);
+    }
+  };
+
+  const handleBooking = () => {
+    // Reset form fields when booking a new service
+    resetForm();
     setModalVisible(true);
   };
 
+  const resetForm = () => {
+    setEventDate(new Date());
+    setEventTime(new Date());
+    setEventPlace('');
+    setVenueType('');
+  };
+  
   const handleSubmitBooking = async () => {
     try {
       const currentUser = auth().currentUser;
@@ -160,38 +213,101 @@ const SupplierProfile = ({ route }) => {
         Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
-
-      if (!selectedService?.supplierId) {
-        Alert.alert("Error", "Supplier ID is missing. Please try again.");
+  
+      if (!selectedService?.supplierId || !eventDate || !eventDuration) {
+        Alert.alert("Error", "Please fill in all the required fields.");
         return;
       }
-
-      if (!eventDate || !eventDuration) {
-        Alert.alert("Error", "Please select both event date and event duration.");
+      
+      if (!selectedService) {
+        Alert.alert("Error", "Selected service is undefined.");
         return;
       }
-
+  
       const trimmedEventName = eventName.trim();
-
+  
       const myEventSnapshot = await firestore()
         .collection("Clients")
         .doc(currentUser.uid)
         .collection("MyEvent")
         .where("status", "==", "Upcoming")
         .get({ source: "server" });
-
-      if (myEventSnapshot.empty) {
-        Alert.alert("Error", "No 'Upcoming' event found for this booking.");
-        return;
-      }
-
-      const matchingEvent = myEventSnapshot.docs.find(doc => doc.data().eventName.trim() === trimmedEventName);
-
+  
+      const matchingEvent = myEventSnapshot.docs.find(doc => {
+        const event = doc.data();
+        return event.eventName.trim() === trimmedEventName;
+      });
+  
       if (!matchingEvent) {
         Alert.alert("Error", `No matching event found with the name: ${trimmedEventName}`);
         return;
       }
-
+  
+      const existingBookingSnapshot = await firestore()
+        .collection("Bookings")
+        .where("serviceId", "==", selectedService.id)
+        .where("eventDate", "==", eventDate.toISOString().split("T")[0])
+        .where("eventTime", "==", eventTime.toISOString().split("T")[1].slice(0, 5))
+        .get();
+  
+      if (!existingBookingSnapshot.empty) {
+        Alert.alert("Error", "This service is already booked for the selected time.");
+        return;
+      }
+  
+      const userBookingSnapshot = await firestore()
+        .collection("Bookings")
+        .where("uid", "==", currentUser.uid)
+        .where("serviceId", "==", selectedService.id)
+        .get();
+  
+      if (!userBookingSnapshot.empty) {
+        Alert.alert("Error", "You have already booked this service.");
+        return;
+      }
+  
+      const serviceRef = firestore()
+        .collection("Supplier")
+        .doc(selectedService.supplierId)
+        .collection("Services")
+        .doc(selectedService.id);
+  
+      const serviceDoc = await serviceRef.get();
+      if (!serviceDoc.exists) {
+        throw new Error("Service document not found");
+      }
+  
+      const serviceData = serviceDoc.data();
+      const unavailableDates = serviceData?.unavailableDates || [];
+  
+      const eventStartDate = new Date(eventDate);
+      const eventEndDate = new Date(eventDuration);
+  
+      if (eventEndDate < eventStartDate) {
+        throw new Error("Event duration must be the same day or later than the event start date.");
+      }
+  
+      const formattedEventDate = eventStartDate.toISOString().split("T")[0];
+      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0];
+  
+      const isUnavailable = unavailableDates.some(date => {
+        return date.eventDate === formattedEventDate || date.eventDuration === formattedEventEndDate;
+      });
+  
+      if (isUnavailable) {
+        Alert.alert("Error", "This service is unavailable for the selected date and time.");
+        return;
+      }
+  
+      const newUnavailableDates = [
+        ...unavailableDates,
+        { eventDate: formattedEventDate, eventDuration: formattedEventEndDate }
+      ];
+  
+      await serviceRef.update({
+        unavailableDates: newUnavailableDates
+      });
+  
       const bookingData = {
         uid: currentUser.uid,
         serviceId: selectedService.id || "",
@@ -207,21 +323,66 @@ const SupplierProfile = ({ route }) => {
         eventDate: formattedEventDate,
         eventPlace: eventPlace || "",
         venueType: venueType || "",
+        paymentMethod: paymentMethod || "",
         referenceNumber: referenceNumber || "",
         eventName: eventName || "",
-        eventDuration: formattedEventEndDate, // Store eventDuration as formatted date
+        eventDuration: formattedEventEndDate,
       };
-
-      await firestore().collection("Bookings").add(bookingData);
-
+  
+      const docRef = await firestore().collection("Bookings").add(bookingData);
+  
+      await serviceRef.update({ status: "Pending" });
+  
+      // await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
+  
+      // ✅ Navigate to PaymentMethodScreen with booking data
+      navigation.navigate('PaymentMethodScreen', {
+        bookingId: docRef.id,
+        amount: selectedService.servicePrice,
+        referenceNumber,
+        eventName,
+        eventDate: formattedEventDate,
+        eventDuration: formattedEventEndDate,
+        serviceName: selectedService.serviceName,
+      });
+  
       setModalVisible(false);
-      Alert.alert("Success", "Service booked successfully!");
     } catch (error) {
       console.error("Error booking service:", error);
       Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
+  
+  useEffect(() => {
+    // Fetch event name suggestions when the user types in the event name input
+    if (eventName.length > 2) {
+      const fetchSuggestions = async () => {
+        const userUid = auth().currentUser?.uid;
+        if (!userUid) return;
 
+        try {
+          const eventNamesSnapshot = await firestore()
+            .collection('Clients')
+            .doc(userUid)
+            .collection('MyEvent')
+            .where('eventName', '>=', eventName)
+            .where('eventName', '<=', eventName + '\uf8ff')
+            .get();
+
+          const events = eventNamesSnapshot.docs.map(doc => doc.data().eventName);
+          setSuggestions(events);
+        } catch (error) {
+          console.error('Error fetching event names:', error);
+        }
+      };
+
+      fetchSuggestions();
+    } else {
+      setSuggestions([]);
+    }
+  }, [eventName]);
+  
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -264,135 +425,218 @@ const SupplierProfile = ({ route }) => {
 
       {/* FlatList for services (only this part is scrollable) */}
       <FlatList
-        data={services}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.serviceCard}>
-            {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.serviceImage} />}
-            <Text style={styles.serviceName}>{item.serviceName}</Text>
-            <Text style={styles.servicePrice}>₱{item.servicePrice || 'Not listed'}</Text>
-            <Text style={styles.serviceDesc}>{item.description}</Text>
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={styles.favoriteButton}
-                onPress={() => addToFavorites(item.serviceName, supplier.supplierName)}
+  data={services}
+  keyExtractor={item => item.id}
+  renderItem={({ item }) => (
+    <View style={styles.serviceCard}>
+      {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.serviceImage} />}
+      <Text style={styles.serviceName}>{item.serviceName}</Text>
+      <Text style={styles.servicePrice}>₱{item.servicePrice || 'Not listed'}</Text>
+      <Text style={styles.serviceDesc}>{item.description}</Text>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => addToFavorites(item.serviceName, supplier.supplierName)}
+        >
+          <Text style={styles.favoriteButtonText}>💖 Add to Favorites</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.bookButton}
+          onPress={() => handleBooking(item)} // Pass item to the handleBooking
+        >
+          <Text style={styles.bookButtonText}>📅 Book Now</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  )}
+  ListEmptyComponent={<Text style={styles.noServices}>No services available</Text>}
+/>
+
+
+<Modal visible={modalVisible} animationType="slide" transparent={true}>
+      <TouchableOpacity onPress={() => setModalVisible(false)} style={{ flex: 1 }}>
+        <View style={styles.modalOverlay}></View>
+      </TouchableOpacity>
+      <View style={styles.modalContainer}>
+        <FlatList
+          data={['dummy']} // Placeholder to render the form fields
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={() => (
+            <>
+              <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+
+              <Text style={styles.label}>Event Start Date:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Date"
+                value={eventDate.toLocaleDateString()}
+                onFocus={showDatePickerHandler}
+              />
+              {showDatePicker && (
+                <DateTimePicker
+                  value={eventDate}
+                  mode="date"
+                  display="default"
+                  onChange={handleDateChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event End Date:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Duration (YYYY-MM-DD)"
+                value={eventDuration.toLocaleDateString()}
+                onFocus={() => setShowDurationPicker(true)}
+              />
+              {showDurationPicker && (
+                <DateTimePicker
+                  value={eventDuration}
+                  mode="date"
+                  display="default"
+                  onChange={handleDurationChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event Time:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Event Time"
+                value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                onFocus={showTimePickerHandler}
+              />
+              {showTimePicker && (
+                <DateTimePicker
+                  value={eventTime}
+                  mode="time"
+                  display="default"
+                  onChange={handleTimeChange}
+                />
+              )}
+
+              <Text style={styles.label}>Event Name:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Event Name"
+                value={eventName}
+                placeholderTextColor={'#888'}
+                onChangeText={setEventName}
+              />
+              {suggestions.length > 0 && (
+                <FlatList
+                  data={suggestions}
+                  keyExtractor={(item, index) => index.toString()}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity onPress={() => setEventName(item)}>
+                      <Text style={styles.suggestionItem}>{item}</Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              )}
+
+              <Text style={styles.label}>Event Place:</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Enter Event Place"
+                value={eventPlace}
+                placeholderTextColor={'#888'}
+                onChangeText={setEventPlace}
+              />
+
+              <Text style={styles.label}>Select Event Venue Type:</Text>
+              <Picker
+                selectedValue={venueType}
+                style={styles.picker1}
+                onValueChange={(itemValue) => setVenueType(itemValue)}
               >
-                <Text style={styles.favoriteButtonText}>💖 Add to Favorites</Text>
+                <Picker.Item label="Select Venue" value="" />
+                <Picker.Item label="Indoor" value="Indoor" />
+                <Picker.Item label="Outdoor" value="Outdoor" />
+              </Picker>
+
+              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
+                <Text style={styles.submitButtonText}>Submit Booking</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.bookButton}
-                onPress={() => handleBooking(item)}
-              >
-                <Text style={styles.bookButtonText}>📅 Book Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
-        ListEmptyComponent={<Text style={styles.noServices}>No services available</Text>}
-      />
- <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-          <View style={styles.modalOverlay}></View>
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          <ScrollView contentContainerStyle={styles.modalContent}>
-            <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Event Date"
-              value={eventDate.toLocaleDateString()}
-              onFocus={() => setShowDatePicker(true)}
-            />
-            {showDatePicker && (
-              <DateTimePicker
-                value={eventDate}
-                mode="date"
-                display="default"
-                onChange={(event, date) => {
-                  setEventDate(date || eventDate);
-                  setShowDatePicker(false);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.input}
-              placeholder="Event Duration"
-              value={eventDuration.toLocaleDateString()}
-              onFocus={() => setShowDurationPicker(true)}
-            />
-            {showDurationPicker && (
-              <DateTimePicker
-                value={eventDuration}
-                mode="date"
-                display="default"
-                onChange={(event, date) => {
-                  setEventDuration(date || eventDuration);
-                  setShowDurationPicker(false);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.input}
-              placeholder="Event Time"
-              value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              onFocus={() => setShowTimePicker(true)}
-            />
-            {showTimePicker && (
-              <DateTimePicker
-                value={eventTime}
-                mode="time"
-                display="default"
-                onChange={(event, date) => {
-                  setEventTime(date || eventTime);
-                  setShowTimePicker(false);
-                }}
-              />
-            )}
-
-            <TextInput
-              style={styles.input}
-              placeholder="Event Name"
-              value={eventName}
-              onChangeText={setEventName}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Event Place"
-              value={eventPlace}
-              onChangeText={setEventPlace}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Venue Type"
-              value={venueType}
-              onChangeText={setVenueType}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="GCash Reference Number"
-              value={referenceNumber}
-              onChangeText={setReferenceNumber}
-            />
-
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
-              <Text style={styles.submitButtonText}>Submit Booking</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </Modal>
+            </>
+          )}
+        />
+      </View>
+    </Modal>
 
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#5392DD',
+    marginTop: 10,
+  },
+  picker1: {
+    height: 50,
+    backgroundColor: '#fff',
+    borderColor: '#5392DD',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  picker: {
+    height: 50,
+    backgroundColor: '#fff',
+    borderColor: '#5392DD',
+    borderWidth: 1,
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  suggestionItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    margin: 40,
+    padding: 20,
+    justifyContent: 'center',
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#f9f9f9',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    fontSize: 16,
+  },
+  submitButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  submitButtonText: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   container: { flex: 1, backgroundColor: '#f4f4f4' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   backButton: {

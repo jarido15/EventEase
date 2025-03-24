@@ -59,12 +59,20 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
+
           <Image source={require('../images/eclipse.png')} style={styles.eclipse}/>
 
           <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
             <Image source={require('../images/arrow.png')} style={styles.arrow}/>
           </TouchableOpacity>
           
+
+          <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
+
+          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
+            <Image source={require('../images/arrow.png')} style={styles.arrow} />
+          </TouchableOpacity>
+
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -94,6 +102,11 @@ const LoginScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={styles.registerText}>Don't have an account?</Text>
             <Text style={styles.register}>Sign Up</Text>
+          </TouchableOpacity>
+
+          {/* Forgot Password link */}
+          <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -171,6 +184,12 @@ const styles = StyleSheet.create({
     color: '#5392DD',
     top: '170%',
     left: '30%',
+  },
+  forgotPasswordText: {
+    color: '#5392DD',
+    marginTop: 15,
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
