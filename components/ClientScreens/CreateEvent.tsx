@@ -25,7 +25,7 @@ const CreateEvent = ({ navigation }) => {
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
-  const [venue, setVenue] = useState('');
+  const [eventPlace, seteventPlace] = useState('');
   const [venueType, setVenueType] = useState('Outdoor');
   const [selectedServices, setSelectedServices] = useState([]);
   const [eventImage, setEventImage] = useState(null); // State to store the image
@@ -82,7 +82,7 @@ const CreateEvent = ({ navigation }) => {
           eventName,
           eventDate: formatDate(eventDate),
           eventTime: formatTime(eventTime),
-          venue,
+          eventPlace,
           venueType,
           selectedServices,
           eventImage: imageUrl, // Save the image URL
@@ -165,9 +165,9 @@ const CreateEvent = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Venue"
-            value={venue}
+            value={eventPlace}
             placeholderTextColor={'#888'}
-            onChangeText={setVenue}
+            onChangeText={seteventPlace}
           />
 
           {/* Venue Type Dropdown */}

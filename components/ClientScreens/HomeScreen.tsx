@@ -13,6 +13,8 @@ import {
   FlatList,
 } from 'react-native';
 import { auth, firestore } from '../../firebaseConfig';
+import { BackHandler, Alert } from 'react-native';
+
 
 const HomeScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
@@ -52,6 +54,28 @@ const HomeScreen = ({ navigation }) => {
 
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
+        {
+          text: 'Cancel',
+          onPress: () => null,
+          style: 'cancel',
+        },
+        {
+          text: 'YES',
+          onPress: () => BackHandler.exitApp(),
+        },
+      ]);
+      return true; // prevent default behavior
+    };
+  
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+  
+    return () => backHandler.remove(); // clean up the listener
+  }, []);
+  
 
   const handleSearch = async (query) => {
     setSearchQuery(query);

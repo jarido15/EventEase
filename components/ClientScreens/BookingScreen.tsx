@@ -435,28 +435,32 @@ const BookingsScreen = () => {
                 <Text style={styles.status}>Status: {item.status}</Text>
                 <Text style={styles.price}>Price: ₱{item.servicePrice}</Text>
 
-                {/* Add to Favorite button */}
-                <TouchableOpacity
-                  onPress={() => addToFavorites(item.serviceName, item.supplierName)}
-                  style={styles.favoriteButton}
-                >
-                  <Image source={require('../images/addfavorite.png')} style={styles.favoriteIcon} />
-                  <Text style={styles.favoriteText}>Add to Favorites</Text>
-                </TouchableOpacity>
+              {/* Add to Favorite button */}
+<TouchableOpacity
+  onPress={() => addToFavorites(item.serviceName, item.supplierName)}
+  style={styles.favoriteButton}
+>
+  <Image source={require('../images/addfavorite.png')} style={styles.favoriteIcon} />
+  <Text style={styles.favoriteText}>Add to Favorites</Text>
+</TouchableOpacity>
 
-                {/* Payment Button */}
-                <TouchableOpacity
-                  onPress={() => openPaymentModal(item.serviceId, item.supplierId)} // Pass serviceId and supplierId
-                  style={styles.paymentButton}
-                >
-                  <Text style={styles.paymentText}>💳 Pay Now</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
+{/* Show Pay Now only if paymentMethod is Gcash */}
+{item.paymentMethod === 'GCash' && (
+  <TouchableOpacity
+    onPress={() => openPaymentModal(item.serviceId, item.supplierId)}
+    style={styles.paymentButton}
+  >
+    <Text style={styles.paymentText}>💳 Pay Now</Text>
+  </TouchableOpacity>
+)}
+
+<TouchableOpacity
   onPress={() => handleCancelBooking(item.id, item.serviceId, item.supplierId, item.bookingDate)}
   style={styles.cancelButton}
 >
   <Text style={styles.cancelText}>Cancel Booking</Text>
 </TouchableOpacity>
+
 
               </View>
             </View>

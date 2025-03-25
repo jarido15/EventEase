@@ -24,45 +24,53 @@ const CompleteService = () => {
   useEffect(() => {
     const fetchPaidBookings = async () => {
       try {
+        const currentUser = auth().currentUser;
+        if (!currentUser) {
+          Alert.alert('Error', 'You must be logged in.');
+          return;
+        }
+  
         const bookingSnapshot = await firestore()
           .collection('Bookings')
           .where('status', '==', 'Paid')
+          .where('uid', '==', currentUser.uid) // ✅ Only fetch bookings of the logged-in client
           .get();
-
+  
         if (bookingSnapshot.empty) {
           setLoading(false);
           return;
         }
-
+  
         const bookingList = await Promise.all(
           bookingSnapshot.docs.map(async (doc) => {
             const bookingData = { id: doc.id, ...doc.data() };
-
+  
             const paymentSnapshot = await firestore()
               .collection('Payments')
               .where('serviceId', '==', bookingData.serviceId)
               .where('supplierId', '==', bookingData.supplierId)
               .get();
-
+  
             let paymentTimestamp = null;
             if (!paymentSnapshot.empty) {
               const paymentData = paymentSnapshot.docs[0].data();
-              paymentTimestamp = paymentData.timestamp ? paymentData.timestamp.toDate().toLocaleString() : 'N/A';
+              paymentTimestamp = paymentData.timestamp
+                ? paymentData.timestamp.toDate().toLocaleString()
+                : 'N/A';
             }
-
-            // Check if the user has already rated this booking
+  
             const ratingSnapshot = await firestore()
               .collection('Ratings')
               .where('bookingId', '==', bookingData.id)
-              .where('userId', '==', auth().currentUser?.uid)  // Check for ratings by the current user
+              .where('userId', '==', currentUser.uid)
               .get();
-
-            const isRated = !ratingSnapshot.empty; // True if the user has rated this booking
-
-            return { ...bookingData, paymentTimestamp, isRated }; // Add the isRated flag
+  
+            const isRated = !ratingSnapshot.empty;
+  
+            return { ...bookingData, paymentTimestamp, isRated };
           })
         );
-
+  
         setBookings(bookingList);
         setFilteredBookings(bookingList);
       } catch (error) {
@@ -72,9 +80,10 @@ const CompleteService = () => {
         setLoading(false);
       }
     };
-
+  
     fetchPaidBookings();
   }, []);
+  
 
   // Function to filter bookings based on search text
   const handleSearch = (text) => {

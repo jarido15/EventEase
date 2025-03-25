@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 
-import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler, Alert } from 'react-native';
 import { Avatar, Card, Appbar, Divider } from 'react-native-paper';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
@@ -52,6 +52,28 @@ const fetchServices = async () => {
     setLoading(false);
   }
 };
+
+useEffect(() => {
+  const backAction = () => {
+    Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
+      {
+        text: 'Cancel',
+        onPress: () => null,
+        style: 'cancel',
+      },
+      {
+        text: 'YES',
+        onPress: () => BackHandler.exitApp(),
+      },
+    ]);
+    return true; // prevent default behavior
+  };
+
+  const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+  return () => backHandler.remove(); // clean up the listener
+}, []);
+
 
   // Refresh data when screen is focused
   const fetchRatings = async () => {

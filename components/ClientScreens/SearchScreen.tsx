@@ -145,12 +145,15 @@ const [suggestions, setSuggestions] = useState([]);
         return;
       }
   
-      if (!selectedService?.supplierId || !eventDate || !eventDuration) {
+      if (!selectedService?.supplierId || !eventDate || !eventDuration || !eventPlace || !eventTime) {
         Alert.alert("Error", "Please fill in all the required fields.");
         return;
       }
   
       const trimmedEventName = eventName.trim();
+      const formattedEventDate = eventDate.toISOString().split("T")[0];
+      const formattedEventEndDate = eventDuration.toISOString().split("T")[0];
+      const formattedEventTime = eventTime.toISOString().split("T")[1].slice(0, 5);
   
       const myEventSnapshot = await firestore()
         .collection("Clients")
@@ -161,19 +164,24 @@ const [suggestions, setSuggestions] = useState([]);
   
       const matchingEvent = myEventSnapshot.docs.find(doc => {
         const event = doc.data();
-        return event.eventName.trim() === trimmedEventName;
+        return (
+          event.eventName.trim().toLowerCase() === trimmedEventName.toLowerCase() &&
+          event.eventDate.includes(formattedEventDate) &&
+          event.eventTime.startsWith(formattedEventTime) &&
+          event.eventPlace.trim().toLowerCase() === eventPlace.trim().toLowerCase()
+        );
       });
   
       if (!matchingEvent) {
-        Alert.alert("Error", `No matching event found with the name: ${trimmedEventName}`);
+        Alert.alert("Error", "No matching event found with the provided details (name, date, time, or place).");
         return;
       }
   
       const existingBookingSnapshot = await firestore()
         .collection("Bookings")
         .where("serviceId", "==", selectedService.id)
-        .where("eventDate", "==", eventDate.toISOString().split("T")[0])
-        .where("eventTime", "==", eventTime.toISOString().split("T")[1].slice(0, 5))
+        .where("eventDate", "==", formattedEventDate)
+        .where("eventTime", "==", formattedEventTime)
         .get();
   
       if (!existingBookingSnapshot.empty) {
@@ -208,13 +216,22 @@ const [suggestions, setSuggestions] = useState([]);
   
       const eventStartDate = new Date(eventDate);
       const eventEndDate = new Date(eventDuration);
+      const today = new Date();
+  
+      // Normalize dates to compare only the day
+      eventStartDate.setHours(0, 0, 0, 0);
+      eventEndDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
   
       if (eventEndDate < eventStartDate) {
-        throw new Error("Event duration must be the same day or later than the event start date.");
+        Alert.alert("Error", "Event duration must be the same day or later than the event start date.");
+        return;
       }
   
-      const formattedEventDate = eventStartDate.toISOString().split("T")[0];
-      const formattedEventEndDate = eventEndDate.toISOString().split("T")[0];
+      if (eventEndDate < today) {
+        Alert.alert("Error", "Event duration cannot be in the past.");
+        return;
+      }
   
       const isUnavailable = unavailableDates.some(date => {
         return date.eventDate === formattedEventDate || date.eventDuration === formattedEventEndDate;
@@ -245,7 +262,7 @@ const [suggestions, setSuggestions] = useState([]);
         imageUrl: selectedService.imageUrl || "",
         timestamp: firestore.FieldValue.serverTimestamp(),
         status: "Pending",
-        eventTime: eventTime.toISOString().split("T")[1].slice(0, 5),
+        eventTime: formattedEventTime,
         eventDate: formattedEventDate,
         eventPlace: eventPlace || "",
         venueType: venueType || "",
@@ -261,7 +278,6 @@ const [suggestions, setSuggestions] = useState([]);
   
       await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
   
-      // ✅ Navigate to PaymentMethodScreen with booking data
       navigation.navigate('PaymentMethodScreen', {
         bookingId: docRef.id,
         amount: selectedService.servicePrice,
@@ -271,7 +287,6 @@ const [suggestions, setSuggestions] = useState([]);
         eventDuration: formattedEventEndDate,
         serviceName: selectedService.serviceName,
       });
-      
   
       setModalVisible(false);
     } catch (error) {
@@ -279,6 +294,9 @@ const [suggestions, setSuggestions] = useState([]);
       Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
+  
+  
+
   
   
   
@@ -379,9 +397,9 @@ const [suggestions, setSuggestions] = useState([]);
     }
   }, [services, ratings]);
   
-  const viewSupplierProfile = (supplierId) => {
-    navigation.navigate('SupplierProfile', { supplierId });
-  };
+  // const viewSupplierProfile = (supplierId) => {
+  //   navigation.navigate('SupplierProfile', { supplierId });
+  // };
 
   useEffect(() => {
     // Fetch event name suggestions when the user types in the event name input

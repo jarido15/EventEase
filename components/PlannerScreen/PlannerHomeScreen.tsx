@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { Avatar, Card } from 'react-native-paper';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import { TabView, SceneMap, TabBar } from 'react-native-tab-view';
+import { BackHandler, Alert } from 'react-native';
+
 
 import auth from '@react-native-firebase/auth';
 const Events = [
@@ -50,6 +52,28 @@ const PlannerHomeScreen = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
+        {
+          text: 'Cancel',
+          onPress: () => null,
+          style: 'cancel',
+        },
+        {
+          text: 'YES',
+          onPress: () => BackHandler.exitApp(),
+        },
+      ]);
+      return true; // prevent default behavior
+    };
+  
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+  
+    return () => backHandler.remove(); // clean up the listener
+  }, []);
+  
 
   // Fetch services from Planner Collection
   const fetchMyServices = async () => {

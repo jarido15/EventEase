@@ -26,6 +26,9 @@ const Register = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [page, setPage] = useState(0); // Track page index
 
   const handleRegister = async () => {
@@ -129,22 +132,34 @@ const Register = ({ navigation }) => {
                 onChangeText={setEmail}
                 keyboardType="email-address"
               />
+             <View style={styles.passwordContainer}>
               <TextInput
-                style={styles.input}
+                style={styles.passwordInput}
                 placeholder="Enter your password"
                 placeholderTextColor="#888"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.passwordContainer}>
               <TextInput
-                style={styles.input}
+                style={styles.passwordInput}
                 placeholder="Confirm your password"
                 placeholderTextColor="#888"
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry
+                secureTextEntry={!showConfirmPassword}
               />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Text style={styles.toggle}>{showConfirmPassword ? 'Hide' : 'Show'}</Text>
+              </TouchableOpacity>
+            </View>
+
             </View>
           </ScrollView>
 
@@ -197,7 +212,29 @@ const styles = StyleSheet.create({
     width: 40,
     height: 36,
   },
-  
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '85%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginBottom: 20,
+    paddingRight: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    color: '#000',
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+  },
+  toggle: {
+    color: '#5392DD',
+    fontWeight: 'bold',
+    paddingHorizontal: 10,
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
