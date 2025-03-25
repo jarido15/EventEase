@@ -1,13 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-
-import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, BackHandler, Alert } from 'react-native';
+import { View, Text, FlatList, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import { Avatar, Card, Appbar, Divider } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { getFCMToken, requestUserPermission } from '../Notification/notificationService';
-
-
 
 const SupplierHomeScreen = () => {
   const [services, setServices] = useState([]);
@@ -15,35 +12,34 @@ const SupplierHomeScreen = () => {
   const navigation = useNavigation();
   const user = auth().currentUser;
   const [servicesCount, setServicesCount] = useState(0);
-const [historyCount, setHistoryCount] = useState(0);
+  const [historyCount, setHistoryCount] = useState(0);
 
-
-const fetchServices = async () => {
-  setLoading(true);
-  try {
-    const snapshot = await firestore()
-      .collection('Supplier')
-      .doc(user.uid)
-      .collection('Services')
-      .orderBy('createdAt', 'desc')
-      .get();
-
-    const servicesList = await Promise.all(snapshot.docs.map(async doc => {
-      const serviceData = doc.data();
-      const ratingsSnapshot = await firestore()
-        .collection('Ratings')
-        .where('supplierId', '==', doc.id)
+  const fetchServices = async () => {
+    setLoading(true);
+    try {
+      const snapshot = await firestore()
+        .collection('Supplier')
+        .doc(user.uid)
+        .collection('Services')
         .get();
 
-      const ratings = ratingsSnapshot.docs.map(ratingDoc => ratingDoc.data().rating);
-      const averageRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'No ratings';
+      const servicesList = await Promise.all(snapshot.docs.map(async doc => {
+        const serviceData = doc.data();
+        const ratingsSnapshot = await firestore()
+          .collection('Supplier')
+          .doc(user.uid)
+          .collection('Rating')
+          .get();
 
-      return {
-        id: doc.id,
-        ...serviceData,
-        averageRating,
-      };
-    }));
+        const ratings = ratingsSnapshot.docs.map(ratingDoc => ratingDoc.data().rating);
+        const averageRating = ratings.length > 0 ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : 'No rating';
+
+        return {
+          id: doc.id,
+          ...serviceData,
+          averageRating,
+        };
+      }));
 
     setServices(servicesList);
   } catch (error) {
@@ -53,49 +49,30 @@ const fetchServices = async () => {
   }
 };
 
-useEffect(() => {
-  const backAction = () => {
-    Alert.alert('Hold on!', 'Are you sure you want to exit the app?', [
-      {
-        text: 'Cancel',
-        onPress: () => null,
-        style: 'cancel',
-      },
-      {
-        text: 'YES',
-        onPress: () => BackHandler.exitApp(),
-      },
-    ]);
-    return true; // prevent default behavior
-  };
-
-  const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
-  return () => backHandler.remove(); // clean up the listener
-}, []);
-
-
-  // Refresh data when screen is focused
-  const fetchRatings = async () => {
+  const fetchCounts = async () => {
     try {
-      const ratingsSnapshot = await firestore()
-        .collection('Ratings')
-        .where('supplierId', '==', user.uid)
+      const servicesSnapshot = await firestore()
+        .collection('Supplier')
+        .doc(user.uid)
+        .collection('Services')
         .get();
+      setServicesCount(servicesSnapshot.size);
 
-      const ratings = ratingsSnapshot.docs.map(doc => doc.data());
-      console.log('Ratings:', ratings);
+      const historySnapshot = await firestore()
+        .collection('Bookings')
+        .where('supplierId', '==', user.uid)
+        .where('status', '==', 'Paid')
+        .get();
+      setHistoryCount(historySnapshot.size);
     } catch (error) {
-      console.error('Error fetching ratings:', error);
+      console.error('Error fetching counts:', error);
     }
   };
-   
+
   useEffect(() => {
     if (user) {
       fetchCounts();
       fetchServices();
-      fetchRatings();
-      // Set up a real-time listener
       const unsubscribe = firestore()
         .collection('Supplier')
         .doc(user.uid)
@@ -113,85 +90,54 @@ useEffect(() => {
           setLoading(false);
         });
 
-      // Request permission and get FCM token
-      const setupNotifications = async () => {
-        try {
-          await requestUserPermission();
-          const token = await getFCMToken();
-  
-          if (token) {
-            console.log('FCM Token:', token);
-            
-            // Store this token in Firestore under the planner's user profile
-            const user = auth().currentUser;
-            if (user) {
-              await firestore().collection('Supplier').doc(user.uid).set({
-                fcmToken: token,
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Error fetching FCM token:', error);
-        }
-      };
+      // const setupNotifications = async () => {
+      //   try {
+      //     await requestUserPermission();
+      //     const token = await getFCMToken();
 
-  
-      // Cleanup listener on unmount
+      //     if (token) {
+      //       console.log('FCM Token:', token);
+      //       if (user) {
+      //         await firestore().collection('Supplier').doc(user.uid).update({
+      //           fcmToken: token,
+      //         });
+      //       }
+      //     }
+      //   } catch (error) {
+      //     console.error('Error fetching FCM token:', error);
+      //   }
+      // };
+
+      // setupNotifications();
+
       return () => unsubscribe();
     }
   }, [user]);
-  
-  
-
-  const fetchCounts = async () => {
-    try {
-      // Fetch total number of services
-      const servicesSnapshot = await firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .get();
-      setServicesCount(servicesSnapshot.size);
-  
-      // Fetch number of completed or cancelled services (history)
-      const historySnapshot = await firestore()
-      .collection('Bookings')
-      .where('supplierId', '==', user.uid)
-      .where('status', '==', 'Paid')
-      .get();
-    setHistoryCount(historySnapshot.size);
-  } catch (error) {
-    console.error('Error fetching counts:', error);
-  }
-  };
 
   return (
     <View style={styles.container}>
       {/* App Header */}
       <Appbar.Header style={styles.header}>
-  <Appbar.Content title="Supplier Dashboard" titleStyle={styles.headerTitle} />
-  <TouchableOpacity onPress={() => navigation.navigate('SupplierProfileScreen')}>
-    <Avatar.Image size={40} source={require('../images/profile-account.png')} />
-  </TouchableOpacity>
-</Appbar.Header>
-
+        <Appbar.Content title="Dashboard" titleStyle={styles.headerTitle} />
+        <TouchableOpacity onPress={() => navigation.navigate('SupplierProfileScreen')}>
+          <Avatar.Image size={40} source={require('../images/profile-account.png')} />
+        </TouchableOpacity>
+      </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.scrollView}>
-        {/* Upcoming Events Section */}
+        {/* Statistics Section */}
         <View style={styles.section}>
-  <View style={styles.statContainer}>
-    <View style={styles.statCard}>
-      <Text style={styles.statNumber}>{servicesCount}</Text>
-      <Text style={styles.statLabel}>Services</Text>
-    </View>
-    <View style={styles.statCard}>
-      <Text style={styles.statNumber}>{historyCount}</Text>
-      <Text style={styles.statLabel}>Finished</Text>
-    </View>
-  </View>
-</View>
-
-
+          <View style={styles.statContainer}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{servicesCount}</Text>
+              <Text style={styles.statLabel}>Services</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{historyCount}</Text>
+              <Text style={styles.statLabel}>Finished</Text>
+            </View>
+          </View>
+        </View>
 
         <Divider style={styles.divider} />
 
@@ -214,7 +160,7 @@ useEffect(() => {
                     <Card.Content>
                       <Text style={styles.serviceTitle}>{item.serviceName || 'No Name'}</Text>
                       <Text style={styles.servicePrice}>Php {item.servicePrice || 'N/A'}</Text>
-                      <Text style={styles.serviceRating}>Rating: {item.averageRating}</Text> {/* Display average rating */}
+                      <Text style={styles.serviceRating}>Rating: {item.averageRating}</Text>
                     </Card.Content>
                   </Card>
                 </TouchableOpacity>
@@ -228,23 +174,17 @@ useEffect(() => {
 };
 
 const styles = StyleSheet.create({
-  text: {
-    fontFamily: 'Poppins-Regular', 
-  
-  },
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
   header: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#003049',
     elevation: 4,
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-    fontFamily: 'Poppins-Regular'
+    color: '#fdf0d5',
   },
   scrollView: {
     paddingBottom: 20,
@@ -257,26 +197,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     color: '#333',
-     fontFamily: 'Poppins-Regular',
     marginBottom: 10,
-  },
-  eventCard: {
-    backgroundColor: '#ffebcc',
-    borderRadius: 10,
-    padding: 15,
-    marginRight: 15,
-    width: 200,
-  },
-  eventTitle: {
-    fontSize: 14,
-     fontFamily: 'Poppins-Regular',
-    fontWeight: 'bold',
-    marginBottom: 5,
-    color: '#333',
-  },
-  eventText: {
-    fontSize: 14,
-    color: '#555',
   },
   divider: {
     marginVertical: 20,
@@ -292,28 +213,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 16,
     color: 'gray',
-  },
-  serviceCard: {
-    marginVertical: 10,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    elevation: 3,
-  },
-  serviceImage: {
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  serviceTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-     fontFamily: 'Poppins-Regular',
-    color: '#333',
-    marginTop: 10,
-  },
-  servicePrice: {
-    fontSize: 16,
-    color: '#007bff',
-    marginTop: 5,
   },
   statContainer: {
     flexDirection: 'row',
@@ -336,12 +235,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'white',
   },
+  serviceCard: {
+    marginVertical: 10,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    elevation: 3,
+  },
+  serviceImage: {
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  serviceTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 10,
+  },
+  servicePrice: {
+    fontSize: 16,
+    color: '#007bff',
+    marginTop: 5,
+  },
   serviceRating: {
     fontSize: 16,
     color: '#ffcc00',
     marginTop: 5,
   },
-  
 });
 
 export default SupplierHomeScreen;

@@ -597,7 +597,11 @@ const [suggestions, setSuggestions] = useState([]);
               <Picker
                 selectedValue={venueType}
                 style={styles.picker1}
+
+                onValueChange={(itemValue) => setserviceName(itemValue)}
+
                 onValueChange={(itemValue) => setVenueType(itemValue)}
+
               >
                 <Picker.Item label="Select Venue" value="" />
                 <Picker.Item label="Indoor" value="Indoor" />
@@ -620,6 +624,16 @@ const [suggestions, setSuggestions] = useState([]);
                 <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
                 <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
               </Picker>
+
+
+              <TextInput
+                style={styles.input}
+                placeholder="Enter GCash Reference Number"
+                value={referenceNumber}
+                placeholderTextColor={'#888'}
+                onChangeText={setreferenceNumber}
+              />
+
 
               <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
                 <Text style={styles.submitButtonText}>Submit Booking</Text>

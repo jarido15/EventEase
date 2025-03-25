@@ -6,6 +6,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { Picker } from '@react-native-picker/picker';
+
 const Products = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [serviceName, setServiceName] = useState('');
@@ -55,57 +56,55 @@ const Products = () => {
   };
 
   // Function to upload service details to Firestore
-const addService = async () => {
-  if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber ||!servicePrice
-  ) {
-    Alert.alert('Error', 'All fields are required.');
-    return;
-  }
+  const addService = async () => {
+    if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber || !selectedLocation) {
+      Alert.alert('Error', 'All fields are required.');
+      return;
+    }
 
-  const imageUrl = await uploadImage();
-  if (!imageUrl) return;
+    const imageUrl = await uploadImage();
+    if (!imageUrl) return;
 
-  const user = auth().currentUser;
-  if (!user) {
-    Alert.alert('Error', 'User not authenticated.');
-    return;
-  }
+    const user = auth().currentUser;
+    if (!user) {
+      Alert.alert('Error', 'User not authenticated.');
+      return;
+    }
 
-  try {
-    await firestore()
-      .collection('Supplier')
-      .doc(user.uid)
-      .collection('Services')
-      .add({
-        uid: user.uid,  // ✅ Adding UID field
-        serviceName,
-        servicePrice,
-        description,
-        gcashNumber,
-        gcashName,
-        location: selectedLocation, // ✅ Store location
-        imageUrl,
-        status: "Available",
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
+    try {
+      await firestore()
+        .collection('Supplier')
+        .doc(user.uid)
+        .collection('Services')
+        .add({
+          uid: user.uid,  // ✅ Adding UID field
+          serviceName,
+          servicePrice,
+          description,
+          gcashNumber,
+          gcashName,
+          location: selectedLocation, // ✅ Store location
+          imageUrl,
+          status: "Available",
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
 
-    Alert.alert('Success', 'Service added successfully!');
-    setServiceName('');
-    setServicePrice('');
-    setDescription('');
-    setSelectedLocation('');
-    setImageUri(null);
-  } catch (error) {
-    console.error('Error adding service:', error);
-    Alert.alert('Error', 'Failed to add service.');
-  }
-};
-
+      Alert.alert('Success', 'Service added successfully!');
+      setServiceName('');
+      setServicePrice('');
+      setDescription('');
+      setSelectedLocation('');
+      setImageUri(null);
+    } catch (error) {
+      console.error('Error adding service:', error);
+      Alert.alert('Error', 'Failed to add service.');
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Appbar.Header>
-        <Appbar.Content title="Services" />
+      <Appbar.Header style={styles.appBar}>
+        <Appbar.Content title="Services" titleStyle={styles.appBarTitle} />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
@@ -175,6 +174,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  appBar: {
+    backgroundColor: '#003049', // Add your desired background color here
+  },
+  appBarTitle: {
+    fontSize: 16,
+    color: '#fdf0d5', // Change the title color to #fdf0d5
   },
   scrollViewContent: {
     paddingBottom: 20,

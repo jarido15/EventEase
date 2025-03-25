@@ -14,6 +14,7 @@ import {
   Image
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const PlannerLogin = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -27,9 +28,19 @@ const PlannerLogin = ({ navigation }) => {
 
     try {
       // Firebase Authentication Login
-      await auth().signInWithEmailAndPassword(email, password);
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+
+      // Check if the user is in the Planner collection
+      const plannerDoc = await firestore().collection('Planner').doc(user.uid).get();
+      if (!plannerDoc.exists) {
+        await auth().signOut();
+        Alert.alert('Error', 'You are not authorized to log in as a planner');
+        return;
+      }
+
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Plannermain'); // Change 'Home' to your next screen
+      navigation.navigate('Plannermain'); // Change 'Plannermain' to your next screen
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');

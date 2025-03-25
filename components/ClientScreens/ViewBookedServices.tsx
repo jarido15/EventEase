@@ -1,4 +1,7 @@
+
+
 /* eslint-disable no-dupe-keys */
+
 /* eslint-disable quotes */
 import React, { useEffect, useState } from "react";
 import {
@@ -141,6 +144,42 @@ const ViewBookedServicesScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
+
+    header: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 15,
+        paddingHorizontal: 20,
+        backgroundColor: "#5392DD",
+        borderBottomLeftRadius: 20,
+        borderBottomRightRadius: 20,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        width: "111%",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+      },
+      backButton: {
+        paddingHorizontal: 20,
+      },
+      backIcon: {
+        width: 24,
+        height: 24,
+        tintColor: "white",
+      },
+      headerText: {
+        flex: 1,
+        left: '40%',
+        fontSize: 24,
+        fontWeight: "bold",
+        color: "white",
+      },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -175,6 +214,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "white",
   },
+
   container: { flex: 1, padding: 20, backgroundColor: "#F9F9F9" },
   loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
   loadingText: { marginTop: 10, fontSize: 16, color: "#555" },
@@ -188,6 +228,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+
+  booktext:{
+    fontSize: 30,
+    fontWeight: '800',
+    top: '10%',
+  },
+  eventContainer: {
+    top: '10%',
+    marginBottom: 20,
+
   booktext: {
     fontSize: 30,
     fontWeight: '800',
@@ -196,6 +246,7 @@ const styles = StyleSheet.create({
   },
   eventContainer: {
     marginBottom: 40,
+
     backgroundColor: "#FFF",
     borderBottomWidth: 2,
     borderBottomColor: '#5392DD',
@@ -203,7 +254,9 @@ const styles = StyleSheet.create({
     padding: 15,
     elevation: 2,
     height: 130,
+
     top: '10%',
+
   },
   eventImage: {
     width: "30%",
@@ -211,6 +264,9 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 20,
   },
+
+  eventName: { fontSize: 25, fontWeight: "bold", marginBottom: 5, bottom: 80, left: '35%', textDecorationLine: 'underline', },
+
   eventName: {
     fontSize: 25,
     fontWeight: "bold",
@@ -219,6 +275,7 @@ const styles = StyleSheet.create({
     left: '35%',
     bottom: '90%',
   },
+
   eventDate: { fontSize: 16, color: "#444" },
   noDataText: { marginTop: 30, textAlign: "center", color: "#777", fontSize: 16 },
   serviceItem: {
@@ -227,6 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF",
     borderRadius: 10,
     elevation: 2,
+    top: '30%',
   },
   serviceImage: {
     width: "100%",
@@ -238,6 +296,5 @@ const styles = StyleSheet.create({
   supplierName: { fontSize: 14, color: "#555", marginBottom: 2 },
   businessName: { fontSize: 14, color: "#555" },
 });
-
 
 export default ViewBookedServicesScreen;
