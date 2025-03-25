@@ -144,42 +144,23 @@ const ViewBookedServicesScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#F9F9F9",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#555",
+  },
 
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingVertical: 15,
-        paddingHorizontal: 20,
-        backgroundColor: "#5392DD",
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 5 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        width: "111%",
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-      },
-      backButton: {
-        paddingHorizontal: 20,
-      },
-      backIcon: {
-        width: 24,
-        height: 24,
-        tintColor: "white",
-      },
-      headerText: {
-        flex: 1,
-        left: '40%',
-        fontSize: 24,
-        fontWeight: "bold",
-        color: "white",
-      },
-
+  // Header Section
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -201,11 +182,19 @@ const styles = StyleSheet.create({
   },
   backButton: {
     paddingHorizontal: 20,
+    marginBottom: 10,
+    padding: 8,
+    alignSelf: "flex-start",
   },
   backIcon: {
     width: 24,
     height: 24,
     tintColor: "white",
+  },
+  backButtonText: {
+    color: "#007AFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
   headerText: {
     flex: 1,
@@ -215,38 +204,15 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  container: { flex: 1, padding: 20, backgroundColor: "#F9F9F9" },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  loadingText: { marginTop: 10, fontSize: 16, color: "#555" },
-  backButton: {
-    marginBottom: 10,
-    padding: 8,
-    alignSelf: "flex-start",
-  },
-  backButtonText: {
-    color: "#007AFF",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-
-  booktext:{
-    fontSize: 30,
-    fontWeight: '800',
-    top: '10%',
-  },
-  eventContainer: {
-    top: '10%',
-    marginBottom: 20,
-
+  // Event Section
   booktext: {
     fontSize: 30,
     fontWeight: '800',
-    marginBottom: 70, // Adjusted to give space between text and list
+    marginBottom: 70,
     top: '8%',
   },
   eventContainer: {
     marginBottom: 40,
-
     backgroundColor: "#FFF",
     borderBottomWidth: 2,
     borderBottomColor: '#5392DD',
@@ -254,9 +220,7 @@ const styles = StyleSheet.create({
     padding: 15,
     elevation: 2,
     height: 130,
-
     top: '10%',
-
   },
   eventImage: {
     width: "30%",
@@ -264,9 +228,6 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 20,
   },
-
-  eventName: { fontSize: 25, fontWeight: "bold", marginBottom: 5, bottom: 80, left: '35%', textDecorationLine: 'underline', },
-
   eventName: {
     fontSize: 25,
     fontWeight: "bold",
@@ -275,9 +236,18 @@ const styles = StyleSheet.create({
     left: '35%',
     bottom: '90%',
   },
+  eventDate: {
+    fontSize: 16,
+    color: "#444",
+  },
+  noDataText: {
+    marginTop: 30,
+    textAlign: "center",
+    color: "#777",
+    fontSize: 16,
+  },
 
-  eventDate: { fontSize: 16, color: "#444" },
-  noDataText: { marginTop: 30, textAlign: "center", color: "#777", fontSize: 16 },
+  // Services Section
   serviceItem: {
     marginBottom: 20,
     padding: 12,
@@ -292,9 +262,21 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
-  serviceName: { fontSize: 16, fontWeight: "bold", marginBottom: 4 },
-  supplierName: { fontSize: 14, color: "#555", marginBottom: 2 },
-  businessName: { fontSize: 14, color: "#555" },
+  serviceName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  supplierName: {
+    fontSize: 14,
+    color: "#555",
+    marginBottom: 2,
+  },
+  businessName: {
+    fontSize: 14,
+    color: "#555",
+  },
 });
+
 
 export default ViewBookedServicesScreen;

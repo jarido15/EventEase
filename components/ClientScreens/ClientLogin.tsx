@@ -13,7 +13,6 @@ import {
   Image
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -28,7 +27,6 @@ const LoginScreen = ({ navigation }) => {
     }
 
     try {
-      // Firebase Authentication Login
       await auth().signInWithEmailAndPassword(email, password);
       Alert.alert('Success', `Welcome ${email}!`);
       navigation.navigate('Main');
@@ -49,7 +47,7 @@ const LoginScreen = ({ navigation }) => {
       style={styles.container}
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.innerContainer}>
           <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
 
           <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
@@ -189,8 +187,8 @@ const styles = StyleSheet.create({
   },
   registerText: {
     color: '#888',
-    top: '220%',
-    right: '8%',
+    marginTop: 20,
+    fontSize: 14,
   },
   register: {
     color: '#5392DD',
