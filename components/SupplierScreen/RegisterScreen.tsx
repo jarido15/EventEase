@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
-  KeyboardAvoidingView, Platform, ScrollView, Image 
+  KeyboardAvoidingView, Platform, ScrollView, Image,  ActivityIndicator 
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -11,29 +11,41 @@ const SupplierRegister = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const isValidGmail = (email) => {
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+    return gmailRegex.test(email);
+  };
 
   const handleContinue = async () => {
     if (!supplierName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
+    if (!isValidGmail(email)) {
+      Alert.alert('Error', 'Please enter a valid Gmail address');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-
+    setLoading(true);
     try {
-      // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Save additional user data in Firestore
       await firestore().collection('Supplier').doc(user.uid).set({
         supplierName,
         email,
-        earnings: 0, // Add earnings field as a number with value 0
-        accountStatus: 'pending', // Add accountStatus field as pending
-        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
+        earnings: 0,
+        accountStatus: 'pending',
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
       Alert.alert('Success', 'Account created successfully!');
@@ -41,6 +53,7 @@ const SupplierRegister = ({ navigation }) => {
     } catch (error) {
       Alert.alert('Error', error.message);
     }
+    setLoading(false);
   };
 
   return (
@@ -51,12 +64,19 @@ const SupplierRegister = ({ navigation }) => {
         <Text style={styles.subtitle}>Together, We'll Craft Memorable Events.</Text>
 
         <TextInput style={styles.input} placeholder="Enter Full Name" value={supplierName} onChangeText={setFullName} />
-        <TextInput style={styles.input} placeholder="Enter Email Address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Enter Email Address" 
+          value={email} 
+          onChangeText={setEmail} 
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
         <TextInput style={styles.input} placeholder="Enter Password" value={password} onChangeText={setPassword} secureTextEntry />
         <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Continue</Text>
+        <TouchableOpacity style={styles.button} onPress={handleContinue} disabled={loading}>
+          {loading ? <ActivityIndicator size="small" color="black" /> : <Text style={styles.buttonText}>Continue</Text>}
         </TouchableOpacity>
 
         <Text style={styles.signInText}>

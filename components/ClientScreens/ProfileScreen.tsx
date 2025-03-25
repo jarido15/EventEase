@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Image, Alert } from 'react-na
 import { useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
@@ -30,7 +30,8 @@ const ProfileScreen = () => {
     }
   }, [user?.uid]);
 
-  const handleLogout = () => {
+  const handleLogout =async  () => {
+    await AsyncStorage.removeItem('userType'); // Clear session
     Alert.alert(
       'Log Out',
       'Are you sure you want to log out?',

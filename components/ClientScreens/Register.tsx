@@ -11,6 +11,7 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
   Image,
   Dimensions,
 } from 'react-native';
@@ -28,40 +29,63 @@ const Register = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+const [loading, setLoading] = useState(false); // Loading state
 
   const [page, setPage] = useState(0); // Track page index
-
   const handleRegister = async () => {
     if (!fullName || !email || !password || !confirmPassword || !mobileNumber || !Address) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
+  
+    // Mobile Number Validation
+    const mobileRegex = /^09\d{9}$/;
+    if (!mobileRegex.test(mobileNumber)) {
+      Alert.alert('Error', 'Mobile number must be 11 digits and start with 09');
+      return;
+    }
+  
+    // Email Validation (Proper domain extension)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+  
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+  
     if (password !== confirmPassword) {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
+    setLoading(true); // Show loader
   
     try {
-      // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
   
-      // Save additional user data in Firestore
       await firestore().collection('Clients').doc(user.uid).set({
-        uid: user.uid, // Save uid
+        uid: user.uid,
         fullName,
         mobileNumber,
         Address,
         email,
-        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
   
       Alert.alert('Success', 'Account created successfully!');
       navigation.navigate('ClientLogin');
     } catch (error) {
       Alert.alert('Error', error.message);
+    }finally{
+      setLoading(false); // Hide loader after process completes
     }
   };
+  
+  
   
 
   return (
@@ -104,14 +128,19 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
                 value={fullName}
                 onChangeText={setFullName}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your mobile number"
-                placeholderTextColor="#888"
-                value={mobileNumber}
-                onChangeText={setMobileNumber}
-                keyboardType="number-pad"
-              />
+           <TextInput
+  style={styles.input}
+  placeholder="Enter your mobile number"
+  placeholderTextColor="#888"
+  value={mobileNumber}
+  onChangeText={(text) => {
+    // Allow only numbers and limit to 11 characters
+    if (/^\d*$/.test(text) && text.length <= 11) {
+      setMobileNumber(text);
+    }
+  }}
+  keyboardType="number-pad"
+/>
                  <TextInput
                 style={styles.input}
                 placeholder="Enter your address"
@@ -171,9 +200,9 @@ const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
           {/* Button */}
           {page === 1 ? (
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
-              <Text style={styles.buttonText}>Sign Up</Text>
-            </TouchableOpacity>
+            <TouchableOpacity style={[styles.button, loading && styles.disabledButton]} onPress={handleRegister} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="black" /> : <Text style={styles.buttonText}>Sign Up</Text>}
+          </TouchableOpacity>
           ) : (
             <Text style={styles.swipeText}>Swipe left for email & password setup →</Text>
           )}

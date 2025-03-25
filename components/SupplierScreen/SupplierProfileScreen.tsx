@@ -17,6 +17,7 @@ import storage from '@react-native-firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'react-native-image-picker';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SupplierProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -74,6 +75,7 @@ const SupplierProfileScreen = () => {
 
   const handleLogout = async () => {
     const user = auth().currentUser; // Ensure we get the latest user state
+    await AsyncStorage.removeItem('userType'); // Clear session
     if (!user) {
       Alert.alert('Error', 'No user is currently signed in.');
       return;
@@ -124,7 +126,8 @@ const SupplierProfileScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 20, paddingLeft: 20, paddingRight: 20 }}>
+      
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.navigate('Suppliermain')}>
           <Image source={require('../images/back.png')} style={styles.backButton} />

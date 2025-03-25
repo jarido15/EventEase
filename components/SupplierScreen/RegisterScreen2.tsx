@@ -68,7 +68,7 @@ const SupplierRegister2 = ({ navigation }) => {
 
         <Text style={styles.signInText}>
           Already have an account?{' '}
-          <Text style={styles.signInLink} onPress={() => navigation.navigate('SignIn')}>Sign in</Text>
+          <Text style={styles.signInLink} onPress={() => navigation.navigate('SupplierLogin')}>Sign in</Text>
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

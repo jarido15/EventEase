@@ -1,20 +1,39 @@
 import React, { useState } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
-  KeyboardAvoidingView, Platform, ScrollView, Image 
+  KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator 
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+
+const validEmailDomains = ['gmail.com', 'yahoo.com', 'outlook.com']; // Add valid domains
 
 const PlannerRegister = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const isValidEmail = (email) => {
+    const emailParts = email.split('@');
+    if (emailParts.length !== 2) return false;
+
+    const domain = emailParts[1];
+    return validEmailDomains.includes(domain);
+  };
 
   const handleContinue = async () => {
     if (!fullName || !email || !password || !confirmPassword) {
       Alert.alert('Error', 'Please fill all fields');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email with an accepted domain');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
       return;
     }
     if (password !== confirmPassword) {
@@ -22,22 +41,24 @@ const PlannerRegister = ({ navigation }) => {
       return;
     }
 
+    setLoading(true); // Start loading
+
     try {
-      // Create user with email and password
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
 
-      // Save additional user data in Firestore
       await firestore().collection('Planner').doc(user.uid).set({
         fullName,
         email,
-        createdAt: firestore.FieldValue.serverTimestamp(), // Corrected timestamp
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
       Alert.alert('Success', 'Account created successfully!');
-      navigation.navigate('PlannerHomeScreen');
+      navigation.navigate('Plannermain');
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -49,12 +70,19 @@ const PlannerRegister = ({ navigation }) => {
         <Text style={styles.subtitle}>Together, We'll Craft Memorable Events.</Text>
 
         <TextInput style={styles.input} placeholder="Enter Full Name" value={fullName} onChangeText={setFullName} />
-        <TextInput style={styles.input} placeholder="Enter Email Address" value={email} onChangeText={setEmail} keyboardType="email-address" />
+        <TextInput 
+          style={styles.input} 
+          placeholder="Enter Email Address" 
+          value={email} 
+          onChangeText={setEmail} 
+          keyboardType="email-address" 
+          autoCapitalize="none"
+        />
         <TextInput style={styles.input} placeholder="Enter Password" value={password} onChangeText={setPassword} secureTextEntry />
         <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
 
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Continue</Text>
+        <TouchableOpacity style={styles.button} onPress={handleContinue} disabled={loading}>
+          {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Continue</Text>}
         </TouchableOpacity>
 
         <Text style={styles.signInText}>
