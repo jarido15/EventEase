@@ -13,6 +13,7 @@ import {
   Keyboard,
   Image,
   Alert,
+  ActivityIndicator 
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -22,17 +23,18 @@ import { launchImageLibrary } from 'react-native-image-picker';
 import storage from '@react-native-firebase/storage';
 
 const PlannerEvent = ({ navigation }) => {
-  const [eventName, setEventName] = useState('');
-  const [price, setPrice] = useState('');
+  const [serviceName, setServiceName] = useState('');
+  const [servicePrice, setServicePrice] = useState('');
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
   const [venue, setVenue] = useState('');
   const [venueType, setVenueType] = useState('Outdoor');
   const [selectedServices, setSelectedServices] = useState([]);
-  const [eventImage, setEventImage] = useState(null); // State to store the image
+  const [imageUrl, setImageUrl] = useState(null);
+  const [description, setDescription] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-
+  const [loading, setLoading] = useState(false);
   const services = [
     { label: 'Food & Beverage', value: 'food' },
     { label: 'Venue and Spaces', value: 'venue' },
@@ -59,45 +61,57 @@ const PlannerEvent = ({ navigation }) => {
       Alert.alert('Error', 'You must be logged in to create an event.');
       return;
     }
-
-    if (!eventName || !venue) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+  
+    // Validation: Check if all required fields are filled
+    if (!serviceName || !venue || !servicePrice || !description || selectedServices.length === 0 || !imageUrl) {
+      Alert.alert('Error', 'Please fill in all required fields including an image, price, selected services, and description.');
       return;
     }
-
+  
+    setLoading(true); // Start loading
+  
     try {
-      // Upload the image to Firebase Storage
-      let imageUrl = '';
-      if (eventImage) {
+      let uploadedImageUrl = '';
+      if (imageUrl) {
         const imageRef = storage().ref(`event_images/${Date.now()}`);
-        await imageRef.putFile(eventImage.uri);
-        imageUrl = await imageRef.getDownloadURL();
+        await imageRef.putFile(imageUrl.uri);
+        uploadedImageUrl = await imageRef.getDownloadURL();
       }
-
-      // Add event to Firestore
+  
       await firestore()
         .collection('Planner')
         .doc(user.uid)
         .collection('PlannerServices')
         .add({
-          eventName,
+          serviceName,
           eventDate: formatDate(eventDate),
           eventTime: formatTime(eventTime),
           venue,
-          price,
+          servicePrice,
           venueType,
+          description,
           selectedServices,
-          eventImage: imageUrl, // Save the image URL
+          imageUrl: uploadedImageUrl,
           createdAt: firestore.FieldValue.serverTimestamp(),
           status: 'Upcoming',
         });
-
-      Alert.alert('Success', 'Event created successfully!');
-      navigation.navigate('Plannermain'); // Adjust this based on your navigation
+  
+      Alert.alert('Success', 'Event created successfully!', [
+        { text: 'OK', onPress: () => 
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Plannermain' }],
+          })
+        }
+      ]);
+  
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
+  
 
   const chooseImage = () => {
     launchImageLibrary({ noData: true }, (response) => {
@@ -106,7 +120,7 @@ const PlannerEvent = ({ navigation }) => {
       } else if (response.errorCode) {
         Alert.alert('Error', response.errorMessage);
       } else {
-        setEventImage(response.assets[0]); // Store the selected image
+        setImageUrl(response.assets[0]);
       }
     });
   };
@@ -124,9 +138,9 @@ const PlannerEvent = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Event Name"
-            value={eventName}
+            value={serviceName}
             placeholderTextColor={'#888'}
-            onChangeText={setEventName}
+            onChangeText={setServiceName}
           />
 
           {/* Date Picker */}
@@ -173,11 +187,13 @@ const PlannerEvent = ({ navigation }) => {
             <TextInput
             style={styles.input}
             placeholder="Price"
-            value={price}
+            value={servicePrice}
             placeholderTextColor={'#888'}
-            onChangeText={setPrice}
+            onChangeText={setServicePrice}
             keyboardType="numeric"
             />
+                   <Text style={styles.label}>Description</Text>
+                   <TextInput style={[styles.input, { height: 100 }]} placeholder="Event Description" value={description} onChangeText={setDescription} multiline numberOfLines={4} />
 
           {/* Venue Type Dropdown */}
           <Text style={styles.label}>Venue Type</Text>
@@ -213,14 +229,18 @@ const PlannerEvent = ({ navigation }) => {
           <TouchableOpacity style={styles.smallButton} onPress={chooseImage}>
             <Text style={styles.buttonText}>Choose Image</Text>
           </TouchableOpacity>
-          {eventImage && (
-            <Image source={{ uri: eventImage.uri }} style={styles.eventImage} />
+          {imageUrl && (
+            <Image source={{ uri: imageUrl.uri }} style={styles.eventImage} />
           )}
 
           {/* Submit Button */}
-          <TouchableOpacity style={styles.button} onPress={handleCreateEvent}>
-            <Text style={styles.buttonText}>Create Event</Text>
-          </TouchableOpacity>
+          {loading ? (
+  <ActivityIndicator size="large" color="#5392DD" />
+) : (
+  <TouchableOpacity style={styles.button} onPress={handleCreateEvent} disabled={loading}>
+    <Text style={styles.buttonText}>Create Event</Text>
+  </TouchableOpacity>
+)}
         </ScrollView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>

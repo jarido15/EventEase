@@ -16,6 +16,7 @@ import firestore from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'react-native-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PlannerProfileScreen = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -73,6 +74,7 @@ const PlannerProfileScreen = () => {
 
   const handleLogout = async () => {
     const user = auth().currentUser; // Ensure we get the latest user state
+    await AsyncStorage.removeItem('userType'); // Clear session
     if (!user) {
       Alert.alert('Error', 'No user is currently signed in.');
       return;

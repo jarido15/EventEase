@@ -10,15 +10,17 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Image
+  Image,
+  ActivityIndicator, // Import ActivityIndicator
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
+  const [loading, setLoading] = useState(false); // Loading state
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,10 +28,13 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
+    setLoading(true); // Start loading
+
     try {
       await auth().signInWithEmailAndPassword(email, password);
+      await AsyncStorage.setItem('userType', 'Client'); // Save user type
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Main');
+      navigation.navigate('main');
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
@@ -38,6 +43,8 @@ const LoginScreen = ({ navigation }) => {
       } else {
         Alert.alert('Error', error.message);
       }
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -48,11 +55,16 @@ const LoginScreen = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.innerContainer}>
-          <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
 
-          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
-            <Image source={require('../images/arrow.png')} style={styles.arrow} />
-          </TouchableOpacity>
+
+
+        <TouchableOpacity 
+  onPress={() => navigation.replace('LoginOption')} 
+  style={styles.backButton} // Updated style
+>
+  <Image source={require('../images/back.png')} style={styles.arrow} />
+</TouchableOpacity>
+
 
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
@@ -81,9 +93,17 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
+          {/* Login Button with Loading Indicator */}
+          <TouchableOpacity 
+            style={[styles.button, loading && styles.disabledButton]} 
+            onPress={handleLogin} 
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color="black" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
@@ -117,13 +137,16 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
   },
+  backButton: {
+    position: 'absolute', 
+    top: 40, 
+    left: 20, 
+    zIndex: 10, // Ensures it's on top
+  },
   arrow: {
     width: 40,
     height: 36,
-    alignSelf: 'flex-start',
-    marginBottom: 20,
-    right: '40%',
-    bottom: '80%',
+    tintColor: 'black', // Optional: Ensures visibility
   },
   title: {
     fontSize: 20,
@@ -171,7 +194,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 10,
   },
-  
   button: {
     backgroundColor: '#5392DD',
     padding: 15,
@@ -179,6 +201,11 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     marginTop: 10,
+    justifyContent: 'center',
+    height: 50, // Ensures enough space for ActivityIndicator
+  },
+  disabledButton: {
+    backgroundColor: '#A0C4F3',
   },
   buttonText: {
     color: '#fff',

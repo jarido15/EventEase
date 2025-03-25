@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput } from 'react-native';
+import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
@@ -7,10 +7,14 @@ import { useNavigation } from '@react-navigation/native';
 
 const Tab = createMaterialTopTabNavigator();
 
-const ChatList = ({ users, searchQuery, navigation }) => {
+const ChatList = ({ users, searchQuery, navigation, loading }) => {
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (loading) {
+    return <ActivityIndicator size="large" color="#5392DD" style={styles.loader} />;
+  }
 
   return (
     <FlatList
@@ -43,10 +47,12 @@ const ChatList = ({ users, searchQuery, navigation }) => {
 const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true); // Loading state
   const navigation = useNavigation();
 
   useEffect(() => {
     const fetchUsersWithLastMessage = async () => {
+      setLoading(true); // Start loading
       try {
         const suppliersSnapshot = await firestore().collection('Supplier').get();
         const plannersSnapshot = await firestore().collection('Planner').get();
@@ -59,9 +65,6 @@ const ChatScreen = () => {
             .orderBy('timestamp', 'desc')
             .limit(1)
             .get();
-
-          // Debug log
-          console.log(`Fetching messages for user ${userId}`, messagesSnapshot.empty ? 'No messages' : messagesSnapshot.docs[0].data());
 
           if (!messagesSnapshot.empty) {
             const lastMessageData = messagesSnapshot.docs[0].data();
@@ -93,6 +96,8 @@ const ChatScreen = () => {
         setChatUsers([...suppliers, ...planners]);
       } catch (error) {
         console.error('Error fetching users with last messages:', error);
+      } finally {
+        setLoading(false); // Stop loading
       }
     };
 
@@ -113,12 +118,18 @@ const ChatScreen = () => {
         onChangeText={setSearchQuery}
       />
 
-      <Tab.Navigator screenOptions={{ tabBarStyle: { backgroundColor: '#5392DD' }, tabBarIndicatorStyle: { backgroundColor: 'white' }, tabBarLabelStyle: { color: 'white', fontWeight: 'bold' } }}>
+      <Tab.Navigator
+        screenOptions={{
+          tabBarStyle: { backgroundColor: '#5392DD' },
+          tabBarIndicatorStyle: { backgroundColor: 'white' },
+          tabBarLabelStyle: { color: 'white', fontWeight: 'bold' },
+        }}
+      >
         <Tab.Screen name="Suppliers">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
         </Tab.Screen>
         <Tab.Screen name="Planners">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
         </Tab.Screen>
       </Tab.Navigator>
     </View>
@@ -136,6 +147,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: '600', color: '#333' },
   lastMessage: { fontSize: 14, color: '#777' },
   time: { fontSize: 12, color: '#888', textAlign: 'right' },
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' }, // Loader Style
 });
 
 export default ChatScreen;

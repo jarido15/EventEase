@@ -71,10 +71,10 @@ const PlannerHomeScreen = () => {
       onPress={() => navigation.navigate('EditService', { service: item })} 
     >
       <Card style={{ margin: 10 }}>
-        <Card.Cover source={{ uri: item.eventImage || 'https://via.placeholder.com/150' }} />
+        <Card.Cover source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} />
         <Card.Content style={{ marginTop: 10 }}>
-          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>{item.eventName}</Text>
-          <Text>Price: Php {item.price}</Text>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 5 }}>{item.serviceName}</Text>
+          <Text>Price: Php {item.servicePrice}</Text>
         </Card.Content>
       </Card>
     </TouchableOpacity>

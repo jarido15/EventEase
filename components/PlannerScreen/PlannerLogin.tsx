@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback  } from 'react';
 import {
   View,
   Text,
@@ -11,14 +11,17 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PlannerLogin = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // State for loading
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -26,12 +29,13 @@ const PlannerLogin = ({ navigation }) => {
       return;
     }
 
+    setLoading(true); // Start loading
+
     try {
-      // Firebase Authentication Login
       const userCredential = await auth().signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
+      await AsyncStorage.setItem('userType', 'Planner');
 
-      // Check if the user is in the Planner collection
       const plannerDoc = await firestore().collection('Planner').doc(user.uid).get();
       if (!plannerDoc.exists) {
         await auth().signOut();
@@ -40,7 +44,7 @@ const PlannerLogin = ({ navigation }) => {
       }
 
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('Plannermain'); // Change 'Plannermain' to your next screen
+      navigation.navigate('Plannermain');
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
@@ -49,21 +53,28 @@ const PlannerLogin = ({ navigation }) => {
       } else {
         Alert.alert('Error', error.message);
       }
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
-
+  const goToRegister = useCallback(() => {
+    navigation.navigate('PlannerRegister');
+  }, [navigation]);
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <Image source={require('../images/eclipse.png')} style={styles.eclipse} />
 
-          <TouchableOpacity onPress={() => navigation.navigate('LoginOption')}>
-            <Image source={require('../images/arrow.png')} style={styles.arrow} />
-          </TouchableOpacity>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+  
+
+        <TouchableOpacity 
+  onPress={() => navigation.replace('LoginOption')} 
+  style={styles.backButton} // Updated style
+>
+  <Image source={require('../images/back.png')} style={styles.arrow} />
+</TouchableOpacity>
 
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
@@ -87,21 +98,24 @@ const PlannerLogin = ({ navigation }) => {
             secureTextEntry
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Login</Text>
+          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Login</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('PlannerRegister')}>
-            <Text style={styles.registerText}>Don't have an account?</Text>
-            <Text style={styles.register}>Sign Up</Text>
+
+  <TouchableOpacity onPress={() => navigation.navigate('PlannerRegister')}>
+            <Text style={styles.forgotPasswordTextSignup}>Don't have an account? Signup!</Text>
           </TouchableOpacity>
 
-          {/* Forgot Password link */}
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
-      </TouchableWithoutFeedback>
+ 
     </KeyboardAvoidingView>
   );
 };
@@ -123,11 +137,16 @@ const styles = StyleSheet.create({
     bottom: '15%',
     right: '22%',
   },
+  backButton: {
+    position: 'absolute', 
+    top: 40, 
+    left: 20, 
+    zIndex: 10, // Ensures it's on top
+  },
   arrow: {
     width: 40,
     height: 36,
-    right: '40%',
-    bottom: 280,
+    tintColor: 'black', // Optional: Ensures visibility
   },
   title: {
     fontSize: 20,
@@ -175,13 +194,18 @@ const styles = StyleSheet.create({
   register: {
     color: '#5392DD',
     top: '170%',
-    left: '30%',
+    left: '35%',
   },
   forgotPasswordText: {
     color: '#5392DD',
     marginTop: 15,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  forgotPasswordTextSignup: {
+    color: 'black',
+    marginTop: 15,
+    fontSize: 14,
   },
 });
 

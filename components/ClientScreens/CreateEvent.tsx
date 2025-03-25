@@ -13,6 +13,7 @@ import {
   Keyboard,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -25,12 +26,13 @@ const CreateEvent = ({ navigation }) => {
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
-  const [eventPlace, seteventPlace] = useState('');
+  const [venue, setVenue] = useState('');
   const [venueType, setVenueType] = useState('Outdoor');
   const [selectedServices, setSelectedServices] = useState([]);
   const [eventImage, setEventImage] = useState(null); // State to store the image
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
 
   const services = [
     { label: 'Food & Beverage', value: 'food' },
@@ -53,27 +55,29 @@ const CreateEvent = ({ navigation }) => {
   const formatTime = (time) => time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }); // HH:MM AM/PM
 
   const handleCreateEvent = async () => {
-    const user = auth().currentUser;
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to create an event.');
-      return;
-    }
-
     if (!eventName || !venue) {
       Alert.alert('Error', 'Please fill in all required fields.');
+      setLoading(false); // Ensure loading stops when validation fails
       return;
     }
-
+  
+    setLoading(true); // Start loading when submission begins
+  
     try {
-      // Upload the image to Firebase Storage
+      const user = auth().currentUser;
+      if (!user) {
+        Alert.alert('Error', 'You must be logged in to create an event.');
+        setLoading(false);
+        return;
+      }
+  
       let imageUrl = '';
       if (eventImage) {
         const imageRef = storage().ref(`event_images/${Date.now()}`);
         await imageRef.putFile(eventImage.uri);
         imageUrl = await imageRef.getDownloadURL();
       }
-
-      // Add event to Firestore
+  
       await firestore()
         .collection('Clients')
         .doc(user.uid)
@@ -82,18 +86,20 @@ const CreateEvent = ({ navigation }) => {
           eventName,
           eventDate: formatDate(eventDate),
           eventTime: formatTime(eventTime),
-          eventPlace,
+          venue,
           venueType,
           selectedServices,
-          eventImage: imageUrl, // Save the image URL
+          eventImage: imageUrl,
           createdAt: firestore.FieldValue.serverTimestamp(),
           status: 'Upcoming',
         });
-
+  
       Alert.alert('Success', 'Event created successfully!');
-      navigation.navigate('Main'); // Adjust this based on your navigation
+      navigation.navigate('Main');
     } catch (error) {
       Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false); // Stop loading regardless of success or failure
     }
   };
 
@@ -116,6 +122,10 @@ const CreateEvent = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Image source={require('../images/back.png')} style={styles.backButton} />
+          </TouchableOpacity>
+
           <Text style={styles.header}>Create Event</Text>
 
           {/* Event Name */}
@@ -165,9 +175,9 @@ const CreateEvent = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder="Venue"
-            value={eventPlace}
+            value={venue}
             placeholderTextColor={'#888'}
-            onChangeText={seteventPlace}
+            onChangeText={setVenue}
           />
 
           {/* Venue Type Dropdown */}
@@ -209,8 +219,8 @@ const CreateEvent = ({ navigation }) => {
           )}
 
           {/* Submit Button */}
-          <TouchableOpacity style={styles.button} onPress={handleCreateEvent}>
-            <Text style={styles.buttonText}>Create Event</Text>
+          <TouchableOpacity style={styles.button} onPress={handleCreateEvent} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="black" /> : <Text style={styles.buttonText}>Create Event</Text>}
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -223,6 +233,16 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 20,
     backgroundColor: '#F5F5F5',
+  },
+  backButton: {
+    width: 24,
+    height: 24,
+    tintColor: 'black', // Change the tint color to white for better visibility
+    marginRight: 20,
+  },
+  backButtonText: {
+    color: '#5392DD',
+    fontSize: 16,
   },
   header: {
     fontSize: 24,
