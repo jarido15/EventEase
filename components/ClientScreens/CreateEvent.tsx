@@ -33,6 +33,7 @@ const CreateEvent = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(false); // Loading state
+  const [eventPlace, seteventPlace] = useState('');
 
   const services = [
     { label: 'Food & Beverage', value: 'food' },
@@ -86,7 +87,7 @@ const CreateEvent = ({ navigation }) => {
           eventName,
           eventDate: formatDate(eventDate),
           eventTime: formatTime(eventTime),
-          venue,
+          eventPlace,
           venueType,
           selectedServices,
           eventImage: imageUrl,
@@ -95,7 +96,7 @@ const CreateEvent = ({ navigation }) => {
         });
   
       Alert.alert('Success', 'Event created successfully!');
-      navigation.navigate('Main');
+      navigation.navigate('main');
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
@@ -137,8 +138,8 @@ const CreateEvent = ({ navigation }) => {
             onChangeText={setEventName}
           />
 
-          {/* Date Picker */}
-          <Text style={styles.label}>Event Date</Text>
+           {/* Date Picker */}
+           <Text style={styles.label}>Event Date</Text>
           <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
             <Text>{formatDate(eventDate)}</Text>
           </TouchableOpacity>

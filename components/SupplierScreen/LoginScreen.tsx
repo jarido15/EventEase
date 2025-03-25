@@ -104,10 +104,10 @@ const LoginScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
-            <Text style={styles.registerText}>Don't have an account?</Text>
-            <Text style={styles.register}>Sign Up</Text>
+ <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
+            <Text style={styles.forgotPasswordTextSignup}>Don't have an account? Signup!</Text>
           </TouchableOpacity>
+       
 
           <TouchableOpacity onPress={() => Alert.alert('Forgot Password', 'Reset link sent!')}>
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
@@ -133,7 +133,11 @@ const styles = StyleSheet.create({
     height: 36,
     tintColor: 'black', // Optional: Ensures visibility
   },
-  
+  forgotPasswordTextSignup: {
+    color: 'black',
+    marginTop: 15,
+    fontSize: 14,
+  },
   title: { fontSize: 20, fontWeight: 'bold', color: '#333', textAlign: 'center', bottom: '15%', paddingTop: 100 },
   subtitle: { fontSize: 15, fontWeight: 'semibold', marginBottom: 20, color: '#333', textAlign: 'center', bottom: '15%' },
   input: { width: '90%', padding: 15, borderWidth: 1, borderColor: '#ccc', borderRadius: 20, backgroundColor: '#fff', marginBottom: 15, bottom: '12%' },

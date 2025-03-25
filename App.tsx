@@ -93,6 +93,7 @@ function MainBottomTabs() {
       <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
       <SupplierStack.Screen name="SupplierProfileScreen" component={SupplierProfileScreen} />
       <Stack.Screen name="SupplierLogin" component={LogInScreen} />
+      <Stack.Screen name="PaymentMethodScreen" component={PaymentMethodScreen} />
       <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
       <Stack.Screen name="SearchPlanner" component={SearchPlannerScreen} />
         <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
@@ -101,6 +102,7 @@ function MainBottomTabs() {
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
+        <Stack.Screen name="CreateEvent" component={CreateEvent} />
 <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
     </SupplierStack.Navigator>
   );
