@@ -149,11 +149,26 @@ const [suggestions, setSuggestions] = useState([]);
         Alert.alert("Error", "Please fill in all the required fields.");
         return;
       }
-  
+      console.log("eventName:", eventName);
+      console.log("eventName before query:", eventName);
+console.log("Trimmed eventName:", eventName?.trim());
+      if (!eventName || typeof eventName !== "string") {
+        Alert.alert("Error", "Event name is missing or invalid.");
+        return;
+      }
+      
       const trimmedEventName = eventName.trim();
-      const formattedEventDate = eventDate.toISOString().split("T")[0];
-      const formattedEventEndDate = eventDuration.toISOString().split("T")[0];
-      const formattedEventTime = eventTime.toISOString().split("T")[1].slice(0, 5);
+
+      const formattedEventDate = eventDate instanceof Date 
+      ? eventDate.toLocaleDateString("en-CA") 
+      : eventDate;
+    
+      const formattedEventEndDate = eventDuration instanceof Date 
+      ? eventDuration.toISOString().split("T")[0] 
+      : eventDuration;
+      const formattedEventTime = eventTime instanceof Date 
+      ? eventTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }).replace(/\u202F/g, " ")
+      : eventTime;
   
       const myEventSnapshot = await firestore()
         .collection("Clients")
@@ -162,18 +177,56 @@ const [suggestions, setSuggestions] = useState([]);
         .where("status", "==", "Upcoming")
         .get({ source: "server" });
   
-      const matchingEvent = myEventSnapshot.docs.find(doc => {
-        const event = doc.data();
-        return (
-          event.eventName.trim().toLowerCase() === trimmedEventName.toLowerCase() &&
-          event.eventDate.includes(formattedEventDate) &&
-          event.eventTime.startsWith(formattedEventTime) &&
-          event.eventPlace.trim().toLowerCase() === eventPlace.trim().toLowerCase()
-        );
-      });
+        const matchingEvent = myEventSnapshot.docs.find(doc => {
+          const event = doc.data();
+        
+          console.log("Checking Event:", event); // Print Firestore event data
+          console.log("Formatted Event Date:", formattedEventDate);
+          console.log("Formatted Event Time:", formattedEventTime);
+          console.log("Trimmed Event Name:", trimmedEventName);
+          console.log("Event Place:", eventPlace?.trim().toLowerCase());
+        
+          const eventNameMatch = event.eventName?.trim().toLowerCase() === trimmedEventName.toLowerCase();
+          const eventDateMatch = event.eventDate === formattedEventDate;
+          const eventTimeMatch = event.eventTime === formattedEventTime;
+          const eventPlaceMatch = event.venue?.trim().toLowerCase() === eventPlace?.trim().toLowerCase();
+        
+          if (!eventDateMatch) {
+            console.log("Mismatch in eventDate:");
+            console.log(`Database Value: ${event.eventDate}`);
+            console.log(`Formatted Value: ${formattedEventDate}`);
+          }
+        
+          if (!eventTimeMatch) {
+            console.log("Mismatch in eventTime:");
+            console.log("Database Value:", event.eventTime, [...event.eventTime]);
+            console.log("Formatted Value:", formattedEventTime, [...formattedEventTime]);
+          }
+        
+          return eventNameMatch && eventDateMatch && eventTimeMatch && eventPlaceMatch;
+        });
+        
+        
+        
   
       if (!matchingEvent) {
-        Alert.alert("Error", "No matching event found with the provided details (name, date, time, or place).");
+        let errorMessage = "No matching event found with the provided details:";
+        const event = myEventSnapshot.docs[0]?.data();
+        if (event) {
+          if (event.eventName.trim().toLowerCase() !== trimmedEventName.toLowerCase()) {
+            errorMessage += "\n- Event Name mismatch";
+          }
+          if (!event.eventDate.includes(formattedEventDate)) {
+            errorMessage += "\n- Event Date mismatch";
+          }
+          if (!event.eventTime.startsWith(formattedEventTime)) {
+            errorMessage += "\n- Event Time mismatch";
+          }
+          if (event.eventPlace.trim().toLowerCase() !== eventPlace.trim().toLowerCase()) {
+            errorMessage += "\n- Event Place mismatch";
+          }
+        }
+        Alert.alert("Error", errorMessage);
         return;
       }
   
@@ -218,7 +271,6 @@ const [suggestions, setSuggestions] = useState([]);
       const eventEndDate = new Date(eventDuration);
       const today = new Date();
   
-      // Normalize dates to compare only the day
       eventStartDate.setHours(0, 0, 0, 0);
       eventEndDate.setHours(0, 0, 0, 0);
       today.setHours(0, 0, 0, 0);
@@ -625,14 +677,14 @@ const [suggestions, setSuggestions] = useState([]);
                 <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
               </Picker>
 
-
+{/* 
               <TextInput
                 style={styles.input}
                 placeholder="Enter GCash Reference Number"
                 value={referenceNumber}
                 placeholderTextColor={'#888'}
                 onChangeText={setreferenceNumber}
-              />
+              /> */}
 
 
               <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
