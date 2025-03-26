@@ -16,13 +16,15 @@ const PaymentMethodScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
 
-  const {
+ const {
     bookingId,
     amount,
     serviceName,
     eventName,
+    gcashNumber,
     eventDate,
     eventDuration,
+    supplierName,
   } = route.params;
 
   const [selectedMethod, setSelectedMethod] = useState<'Cash' | 'GCash' | null>(null);
@@ -72,11 +74,13 @@ const PaymentMethodScreen = () => {
         <Text style={styles.navTitle}>Select Your Payment</Text>
       </View>
 
-      <View style={styles.detailBox}>
+        <View style={styles.detailBox}>
         <Text style={styles.label}>Event: <Text style={styles.value}>{eventName}</Text></Text>
         <Text style={styles.label}>Service: <Text style={styles.value}>{serviceName}</Text></Text>
         <Text style={styles.label}>Date: <Text style={styles.value}>{eventDate}</Text></Text>
         <Text style={styles.label}>Duration: <Text style={styles.value}>{eventDuration}</Text></Text>
+        <Text style={styles.label}>Supplier: <Text style={styles.value}>{supplierName}</Text></Text>
+        <Text style={styles.label}>Gcash Number: <Text style={styles.value}>{gcashNumber}</Text></Text>
         <Text style={styles.label}>Amount: <Text style={styles.amount}>₱{amount}</Text></Text>
       </View>
 
