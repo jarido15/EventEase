@@ -11,16 +11,17 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Image,
-  ActivityIndicator, // Import ActivityIndicator
+  ActivityIndicator,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // Loading state
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -28,14 +29,32 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
 
     try {
-      await auth().signInWithEmailAndPassword(email, password);
-      await AsyncStorage.setItem('userType', 'Client'); // Save user type
+      // Check if the user exists in Clients collection
+      const clientSnapshot = await firestore()
+        .collection('Clients')
+        .where('email', '==', email)
+        .get();
+
+      if (clientSnapshot.empty) {
+        setLoading(false);
+        Alert.alert('Error', 'This account is not registered as a client.');
+        return;
+      }
+
+      // Authenticate user
+      const userCredential = await auth().signInWithEmailAndPassword(email, password);
+      const userId = userCredential.user.uid;
+
+      // Save user type
+      await AsyncStorage.setItem('userType', 'Clients');
+
       Alert.alert('Success', `Welcome ${email}!`);
       navigation.navigate('main');
     } catch (error) {
+      setLoading(false);
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'User not found');
       } else if (error.code === 'auth/wrong-password') {
@@ -44,30 +63,20 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert('Error', error.message);
       }
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.innerContainer}>
-
-
-
-        <TouchableOpacity 
-  onPress={() => navigation.replace('LoginOption')} 
-  style={styles.backButton} // Updated style
->
-  <Image source={require('../images/back.png')} style={styles.arrow} />
-</TouchableOpacity>
-
+          <TouchableOpacity onPress={() => navigation.replace('LoginOption')} style={styles.backButton}>
+            <Image source={require('../images/back.png')} style={styles.arrow} />
+          </TouchableOpacity>
 
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
-          <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
+          <Text style={styles.subtitle}>Plan and manage your events effortlessly.</Text>
 
           <TextInput
             style={styles.input}
@@ -94,20 +103,14 @@ const LoginScreen = ({ navigation }) => {
           </View>
 
           {/* Login Button with Loading Indicator */}
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.disabledButton]} 
-            onPress={handleLogin} 
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="black" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
+          <TouchableOpacity style={[styles.button, loading && styles.disabledButton]} onPress={handleLogin} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="black" /> : <Text style={styles.buttonText}>Login</Text>}
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerText}>Don't have an account? <Text style={styles.register}>Sign Up</Text></Text>
+            <Text style={styles.registerText}>
+              Don't have an account? <Text style={styles.register}>Sign Up</Text>
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
@@ -130,23 +133,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
-  eclipse: {
-    width: 230,
-    height: 240,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
   backButton: {
-    position: 'absolute', 
-    top: 40, 
-    left: 20, 
-    zIndex: 10, // Ensures it's on top
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    zIndex: 10,
   },
   arrow: {
     width: 40,
     height: 36,
-    tintColor: 'black', // Optional: Ensures visibility
+    tintColor: 'black',
   },
   title: {
     fontSize: 20,
@@ -202,7 +198,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
     justifyContent: 'center',
-    height: 50, // Ensures enough space for ActivityIndicator
+    height: 50,
   },
   disabledButton: {
     backgroundColor: '#A0C4F3',
