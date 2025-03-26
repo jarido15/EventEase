@@ -29,20 +29,22 @@ const MyEventsScreen = () => {
       setLoading(false);
       return;
     }
-
+  
     const fetchEvents = async () => {
       try {
         const snapshot = await firestore()
           .collection("Clients")
           .doc(user.uid)
           .collection("MyEvent")
+          .orderBy("createdAt", "desc") // Fetch data sorted directly from Firestore
           .get();
-
+    
         const eventList = snapshot.docs.map((doc) => {
           const data = doc.data();
           return {
             id: doc.id,
-             eventDate: data.eventDate || "",
+            createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)) : null,
+            eventDate: data.eventDate ? (data.eventDate.toDate ? data.eventDate.toDate() : new Date(data.eventDate)) : null,
             eventImage: data.eventImage || null,
             eventName: data.eventName || "Unnamed Event",
             eventTime: data.eventTime || "Unknown Time",
@@ -51,7 +53,7 @@ const MyEventsScreen = () => {
             status: data.status || "Upcoming",
           };
         });
-
+    
         setEvents(eventList);
       } catch (error) {
         console.error("Error fetching user events:", error);
@@ -59,10 +61,11 @@ const MyEventsScreen = () => {
         setLoading(false);
       }
     };
-
+    
+  
     fetchEvents();
   }, [user?.uid]);
-
+  
   const handleServiceCheck = async (eventId, serviceIndex) => {
     const updatedEvents = events.map((event) =>
       event.id === eventId
