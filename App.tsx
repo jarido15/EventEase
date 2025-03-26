@@ -108,6 +108,7 @@ function MainBottomTabs() {
       <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
       <Stack.Screen name="BookingScreen" component={BookingScreen} />
       <Stack.Screen name="CompleteService" component={CompleteService} />
+      <Stack.Screen name="ClientLogin" component={ClientLogin} />
       <Stack.Screen name="CreateEvent" component={CreateEvent} />
       <Stack.Screen name="FavoriteScreen" component={FavoriteScreen} />
     </SupplierStack.Navigator>
@@ -204,7 +205,7 @@ function SupplierTabNavigator() {
         tabBarIcon: ({focused}) => {
           let iconSource;
           if (route.name === 'Home') iconSource = plannerHome;
-          else if (route.name === 'Products') iconSource = plannerAdd;
+          else if (route.name === 'Services') iconSource = plannerAdd;
           else if (route.name === 'Chats') iconSource = plannerChat;
           else if (route.name === 'Booking') iconSource = bookingIcon;
 
@@ -233,7 +234,7 @@ function SupplierTabNavigator() {
         options={{headerShown: false}}
       />
       <Tab.Screen
-        name="Products"
+        name="Services"
         component={Products}
         options={{headerShown: false}}
       />
@@ -341,7 +342,7 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        {userType === 'Client' ? (
+        {userType === 'Clients' ? (
           <Stack.Screen name="main" component={MainBottomTabs} />
         ) : userType === 'Supplier' ? (
           <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
