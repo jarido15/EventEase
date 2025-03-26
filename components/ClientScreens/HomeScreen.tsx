@@ -154,7 +154,7 @@ const HomeScreen = ({ navigation }) => {
                   <View style={styles.eventInfo}>
                     <Text style={styles.eventTitle}>{item.eventName || 'Unnamed Event'}</Text>
                     <Text style={styles.eventDetails}>
-                      📍 {item.venue || 'Venue not set'} | 🕒 {item.eventTime || 'Time not set'}
+                      📍 {item.eventPlace || 'Venue not set'} | 🕒 {item.eventTime || 'Time not set'}
                     </Text>
                     <Text style={styles.eventDate}>📅 {item.eventDate || 'Date not set'}</Text>
                     <Text style={styles.venueType}>🏠 {item.venueType || 'Venue type not set'}</Text>
