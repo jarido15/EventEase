@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -87,14 +88,20 @@ const LoginScreen = ({ navigation }) => {
             autoCapitalize="none"
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            placeholderTextColor="#888"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+         
+                   <View style={styles.passwordContainer}>
+                               <TextInput
+                                 style={styles.passwordInput}
+                                 placeholder="Enter your password"
+                                 placeholderTextColor="#888"
+                                 value={password}
+                                 onChangeText={setPassword}
+                                 secureTextEntry={!showPassword}
+                               />
+                               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                                 <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+                               </TouchableOpacity>
+                             </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
             {loading ? (
@@ -146,6 +153,30 @@ const styles = StyleSheet.create({
   registerText: { color: '#000', top: '220%', right: '8%' },
   register: { color: '#5392DD', top: '170%', left: '35%' },
   forgotPassword: { color: '#5392DD', marginTop: 15, textAlign: 'center', fontSize: 14 },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginBottom: 15,
+    bottom: 80,
+    paddingRight: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    color: '#000',
+  },
+  toggle: {
+    color: '#5392DD',
+    fontWeight: 'bold',
+    paddingHorizontal: 10,
+  },
 });
 
 export default LoginScreen;
