@@ -1,7 +1,7 @@
 /* eslint-disable no-trailing-spaces */
 /* eslint-disable react/self-closing-comp */
 /* eslint-disable quotes */
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,16 @@ import {
   Keyboard,
   ScrollView,
 } from 'react-native';
-import firestore, { collection, firebase, getDocs } from '@react-native-firebase/firestore';
-import { Picker } from '@react-native-picker/picker';
-import functions from "@react-native-firebase/functions";
+import firestore, {
+  collection,
+  firebase,
+  getDocs,
+} from '@react-native-firebase/firestore';
+import {Picker} from '@react-native-picker/picker';
+import functions from '@react-native-firebase/functions';
 import auth from '@react-native-firebase/auth';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 
 const SearchScreen = () => {
   const [services, setServices] = useState([]);
@@ -31,7 +35,13 @@ const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
   const [locations, setLocations] = useState([
-    'Calapan', 'Naujan', 'Victoria', 'Socorro', 'Pola', 'Pinamalayan', 'Gloria'
+    'Calapan',
+    'Naujan',
+    'Victoria',
+    'Socorro',
+    'Pola',
+    'Pinamalayan',
+    'Gloria',
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -40,6 +50,7 @@ const SearchScreen = () => {
   const [eventDate, setEventDate] = useState(new Date());
   const [eventPlace, setEventPlace] = useState('');
   const [referenceNumber, setreferenceNumber] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setpaymentMethod] = useState('');
   const [venueType, setVenueType] = useState('');
   const [eventName, seteventName] = useState('');
@@ -47,16 +58,15 @@ const SearchScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [eventDuration, setEventDuration] = useState(new Date());
-const [showDurationPicker, setShowDurationPicker] = useState(false);
-const [ratings, setRatings] = useState([]);  // All ratings data
-const navigation = useNavigation(); // Get navigation object
-const [suggestions, setSuggestions] = useState([]);
-
+  const [showDurationPicker, setShowDurationPicker] = useState(false);
+  const [ratings, setRatings] = useState([]); // All ratings data
+  const navigation = useNavigation(); // Get navigation object
+  const [suggestions, setSuggestions] = useState([]);
 
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const snapshot = await firestore().collection("Supplier").get();
+        const snapshot = await firestore().collection('Supplier').get();
         let serviceList = [];
         let locationSet = new Set(locations);
 
@@ -65,11 +75,11 @@ const [suggestions, setSuggestions] = useState([]);
           locationSet.add(supplierData.Location);
 
           const servicesSnapshot = await doc.ref
-            .collection("Services")
-            .orderBy("createdAt", "desc")
+            .collection('Services')
+            .orderBy('createdAt', 'desc')
             .get();
 
-          servicesSnapshot.forEach((serviceDoc) => {
+          servicesSnapshot.forEach(serviceDoc => {
             const serviceData = serviceDoc.data();
             serviceList.push({
               id: serviceDoc.id,
@@ -85,7 +95,7 @@ const [suggestions, setSuggestions] = useState([]);
         setFilteredServices(serviceList);
         setLocations([...locationSet]);
       } catch (error) {
-        console.error("Error fetching services:", error);
+        console.error('Error fetching services:', error);
       } finally {
         setLoading(false);
       }
@@ -94,12 +104,12 @@ const [suggestions, setSuggestions] = useState([]);
     fetchServices();
   }, []);
 
-  const handleSearch = (query) => {
+  const handleSearch = query => {
     setSearchQuery(query);
     filterServices(query, location);
   };
 
-  const handleLocationFilter = (selectedLocation) => {
+  const handleLocationFilter = selectedLocation => {
     setLocation(selectedLocation);
     filterServices(searchQuery, selectedLocation);
   };
@@ -109,20 +119,20 @@ const [suggestions, setSuggestions] = useState([]);
 
     if (query.trim() !== '') {
       filtered = filtered.filter(
-        (item) =>
+        item =>
           item.serviceName.toLowerCase().includes(query.toLowerCase()) ||
-          item.supplierName.toLowerCase().includes(query.toLowerCase())
+          item.supplierName.toLowerCase().includes(query.toLowerCase()),
       );
     }
 
     if (selectedLocation) {
-      filtered = filtered.filter((item) => item.location === selectedLocation);
+      filtered = filtered.filter(item => item.location === selectedLocation);
     }
 
     setFilteredServices(filtered);
   };
 
-  const handleBooking = (service) => {
+  const handleBooking = service => {
     // Reset form fields when booking a new service
     resetForm();
 
@@ -141,183 +151,168 @@ const [suggestions, setSuggestions] = useState([]);
     try {
       const currentUser = auth().currentUser;
       if (!currentUser) {
-        Alert.alert('Error', 'You must be logged in to book a service.');
+        Alert.alert("Error", "You must be logged in to book a service.");
         return;
       }
-
+  
       if (
+        !selectedService?.id ||
         !selectedService?.supplierId ||
         !eventDate ||
         !eventTime ||
         !eventPlace
       ) {
-        Alert.alert('Error', 'Please fill in all the required fields.');
+        Alert.alert("Error", "Please fill in all the required fields.");
         return;
       }
-
+  
       // Format date & time correctly
-      const formatDate = date => date.toISOString().split('T')[0]; // YYYY-MM-DD
-      const formatTime = time =>
+      const formatDate = (date) => date.toISOString().split("T")[0]; // YYYY-MM-DD
+      const formatTime = (time) =>
         time.toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit',
+          hour: "2-digit",
+          minute: "2-digit",
           hour12: true,
         });
-
+  
       const formattedEventDate = formatDate(eventDate);
       const formattedEventTime = formatTime(eventTime);
-      const formattedEventPlace = eventPlace ? eventPlace.trim() : ''; // Fixed: Prevent undefined error
-      const formattedEventName = eventName ? eventName.trim() : ''; // Fixed: Prevent undefined error
-
-      console.log('Formatted Input Data:', {
+      const formattedEventPlace = eventPlace ? eventPlace.trim() : "";
+      const formattedEventName = eventName ? eventName.trim() : "";
+      const formattedEventDuration = eventDuration ? formatDate(eventDuration) : "";
+  
+      console.log("Formatted Input Data:", {
         eventName: formattedEventName,
         eventDate: formattedEventDate,
         eventTime: formattedEventTime,
         eventPlace: formattedEventPlace,
+        eventDuration: formattedEventDuration,
       });
-
-      // Fetch upcoming events from MyEvent subcollection
-      const myEventSnapshot = await firestore()
-        .collection('Clients')
-        .doc(currentUser.uid)
-        .collection('MyEvent')
-        .where('status', '==', 'Upcoming')
-        .get();
-
-      if (myEventSnapshot.empty) {
-        Alert.alert('Error', 'No upcoming events found.');
+  
+      // 🔹 Check if the service exists in Firestore (inside the correct Supplier collection)
+      const serviceRef = firestore()
+        .collection("Supplier")
+        .doc(selectedService.supplierId)
+        .collection("Services")
+        .doc(selectedService.id);
+  
+      const serviceDoc = await serviceRef.get();
+  
+      if (!serviceDoc.exists) {
+        console.error("Service document not found in Firestore.");
+        Alert.alert("Error", "Service does not exist.");
         return;
       }
-
-      let matchingEvent = null;
-
-      myEventSnapshot.docs.forEach(doc => {
-        const event = doc.data();
-        console.log('Stored Event in MyEvent:', event);
-
-        if (
-          (event.eventName ? event.eventName.trim() : '') ===
-            formattedEventName &&
-          event.eventDate === formattedEventDate &&
-          event.eventTime === formattedEventTime &&
-          (event.eventPlace ? event.eventPlace.trim() : '') ===
-            formattedEventPlace
-        ) {
-          matchingEvent = event;
-        }
-      });
-
-      if (!matchingEvent) {
-        Alert.alert(
-          'Error',
-          'No matching event found with the provided details (name, date, time, or place).',
-        );
-        return;
-      }
-
-      // Check if the service is already booked for this date and time
-      const existingBookingSnapshot = await firestore()
-        .collection('Bookings')
-        .where('serviceId', '==', selectedService.id)
-        .where('eventDate', '==', formattedEventDate)
-        .where('eventTime', '==', formattedEventTime)
-        .get();
-
-      if (!existingBookingSnapshot.empty) {
-        Alert.alert(
-          'Error',
-          'This service is already booked for the selected time.',
-        );
-        return;
-      }
-
-      // Check if the user has already booked this service
+  
+      // 🔹 Check if the user has already booked this service
       const userBookingSnapshot = await firestore()
-        .collection('Bookings')
-        .where('uid', '==', currentUser.uid)
-        .where('serviceId', '==', selectedService.id)
+        .collection("Bookings")
+        .where("uid", "==", currentUser.uid)
+        .where("serviceId", "==", selectedService.id)
         .get();
-
+  
       if (!userBookingSnapshot.empty) {
-        Alert.alert('Error', 'You have already booked this service.');
+        Alert.alert("Error", "You have already booked this service.");
         return;
       }
-
-      // Proceed with booking
+  
+      // 🔹 Proceed with booking
       const bookingData = {
         uid: currentUser.uid,
-        serviceId: selectedService.id || '',
-        supplierId: selectedService.supplierId || '',
-        serviceName: selectedService.serviceName || '',
-        supplierName: selectedService.supplierName || '',
-        location: selectedService.location || '',
+        serviceId: selectedService.id,
+        supplierId: selectedService.supplierId || "",
+        serviceName: selectedService.serviceName || "",
+        supplierName: selectedService.supplierName || "",
+        location: selectedService.location || "",
         servicePrice: selectedService.servicePrice || 0,
-        imageUrl: selectedService.imageUrl || '',
+        imageUrl: selectedService.imageUrl || "",
         timestamp: firestore.FieldValue.serverTimestamp(),
-        status: 'Pending',
+        gcashNumber: selectedService.gcashNumber || "",
+        status: "Pending",
         eventTime: formattedEventTime,
         eventDate: formattedEventDate,
         eventPlace: formattedEventPlace,
-        venueType: venueType || '',
-        paymentMethod: paymentMethod || '',
-        referenceNumber: referenceNumber || '',
+        venueType: venueType || "",
+        paymentMethod: paymentMethod || "",
+        amountPaid: amountPaid || "",
+        referenceNumber: referenceNumber || "",
         eventName: formattedEventName,
-        eventDuration: formatDate(eventDuration),
+        eventDuration: formattedEventDuration,
       };
-
-      const docRef = await firestore().collection('Bookings').add(bookingData);
-
-      await sendPushNotification(
-        selectedService.supplierId,
-        selectedService.serviceName,
+  
+      const docRef = await firestore().collection("Bookings").add(bookingData);
+  
+      // 🔹 Update unavailableDates in Services subcollection inside Suppliers
+      const existingUnavailableDates = serviceDoc.data().unavailableDates || [];
+  
+      // **Add new unavailable dates** while avoiding duplicates
+      const isAlreadyUnavailable = existingUnavailableDates.some(
+        (date) =>
+          date.eventDate === formattedEventDate &&
+          date.eventDuration === formattedEventDuration
       );
-
-     
-      navigation.navigate('PaymentMethodScreen', {
+  
+      if (!isAlreadyUnavailable) {
+        const newUnavailableDates = [
+          ...existingUnavailableDates,
+          { eventDate: formattedEventDate, eventDuration: formattedEventDuration },
+        ];
+  
+        // **Update Firestore**
+        await serviceRef.update({ unavailableDates: newUnavailableDates });
+  
+        console.log("✅ Unavailable dates updated:", newUnavailableDates);
+      }
+  
+      // 🔹 Send a push notification
+      await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
+  
+      // 🔹 Navigate to Payment Screen
+      navigation.navigate("PaymentMethodScreen", {
         bookingId: docRef.id,
         amount: selectedService.servicePrice,
         referenceNumber,
+        amountPaid,
         gcashNumber: selectedService.gcashNumber,
         supplierName: selectedService.supplierName,
         eventName,
         eventDate: formattedEventDate,
-        eventDuration: formatDate(eventDuration),
+        eventDuration: formattedEventDuration,
         serviceName: selectedService.serviceName,
       });
-
+  
       setModalVisible(false);
     } catch (error) {
-      console.error('Error booking service:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to book the service. Please try again.',
-      );
+      console.error("Error booking service:", error);
+      Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
     }
   };
   
+  
+  
 
-  
-  
-  
   const sendPushNotification = async (supplierId, serviceName) => {
     try {
-      const supplierDoc = await firestore().collection("Supplier").doc(supplierId).get();
+      const supplierDoc = await firestore()
+        .collection('Supplier')
+        .doc(supplierId)
+        .get();
       const supplierData = supplierDoc.data();
       const fcmToken = supplierData?.fcmToken;
 
       if (!fcmToken) {
-        console.warn("No FCM token found for supplier:", supplierId);
+        console.warn('No FCM token found for supplier:', supplierId);
         return;
       }
 
-      const response = await functions().httpsCallable("sendPushNotification")({
+      const response = await functions().httpsCallable('sendPushNotification')({
         fcmToken,
         serviceName,
       });
 
-      console.log("Push notification response:", response);
+      console.log('Push notification response:', response);
     } catch (error) {
-      console.error("Error sending push notification:", error);
+      console.error('Error sending push notification:', error);
     }
   };
 
@@ -350,52 +345,51 @@ const [suggestions, setSuggestions] = useState([]);
     }
   };
 
-   // Fetch all ratings
-   const fetchRatings = async () => {
+  // Fetch all ratings
+  const fetchRatings = async () => {
     try {
-      const snapshot = await firestore().collection("Ratings").get();
+      const snapshot = await firestore().collection('Ratings').get();
       const ratingsData = snapshot.docs.map(doc => doc.data());
       setRatings(ratingsData);
     } catch (error) {
-      console.error("Error fetching ratings:", error);
+      console.error('Error fetching ratings:', error);
     }
   };
-  
 
   const mergeRatingsWithServices = () => {
     const ratingsMap = ratings.reduce((acc, rating) => {
       const key = `${rating.serviceName}-${rating.supplierName}`;
       if (!acc[key]) {
-        acc[key] = { total: 0, count: 0 };
+        acc[key] = {total: 0, count: 0};
       }
       acc[key].total += rating.rating;
       acc[key].count += 1;
       return acc;
     }, {});
-  
+
     // Calculate the average ratings
     const servicesWithRatings = services.map(service => {
       const key = `${service.serviceName}-${service.supplierName}`;
       const averageRating = ratingsMap[key]
         ? (ratingsMap[key].total / ratingsMap[key].count).toFixed(1)
-        : "No Ratings";
-  
-      return { ...service, averageRating };
+        : 'No Ratings';
+
+      return {...service, averageRating};
     });
-  
+
     setFilteredServices(servicesWithRatings);
   };
 
   useEffect(() => {
     fetchRatings();
   }, []);
-  
+
   useEffect(() => {
     if (services.length > 0 && ratings.length > 0) {
       mergeRatingsWithServices();
     }
   }, [services, ratings]);
-  
+
   // const viewSupplierProfile = (supplierId) => {
   //   navigation.navigate('SupplierProfile', { supplierId });
   // };
@@ -405,9 +399,9 @@ const [suggestions, setSuggestions] = useState([]);
     if (eventName.length > 2) {
       const fetchSuggestions = async () => {
         const userUid = firebase.auth().currentUser?.uid; // Get current user UID
-  
+
         if (!userUid) return; // Return early if no user is logged in
-  
+
         try {
           const eventNamesSnapshot = await firebase
             .firestore()
@@ -417,20 +411,21 @@ const [suggestions, setSuggestions] = useState([]);
             .where('eventName', '>=', eventName) // Filter events starting with the input
             .where('eventName', '<=', eventName + '\uf8ff') // Case-insensitive matching
             .get();
-  
-          const events = eventNamesSnapshot.docs.map(doc => doc.data().eventName);
+
+          const events = eventNamesSnapshot.docs.map(
+            doc => doc.data().eventName,
+          );
           setSuggestions(events);
         } catch (error) {
           console.error('Error fetching event names:', error);
         }
       };
-  
+
       fetchSuggestions();
     } else {
       setSuggestions([]);
     }
   }, [eventName]);
-  
 
   if (loading) {
     return (
@@ -444,10 +439,10 @@ const [suggestions, setSuggestions] = useState([]);
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Available Services</Text>
-       <TouchableOpacity onPress={() => navigation.navigate('SearchPlanner')}>
-      <View style={styles.plannercontainer}>
-        <Image source={require('../images/graph.png')} style={styles.icon}/>
-      </View>
+      <TouchableOpacity onPress={() => navigation.navigate('SearchPlanner')}>
+        <View style={styles.plannercontainer}>
+          <Image source={require('../images/graph.png')} style={styles.icon} />
+        </View>
       </TouchableOpacity>
       <TextInput
         style={styles.searchBar}
@@ -458,8 +453,7 @@ const [suggestions, setSuggestions] = useState([]);
       <Picker
         selectedValue={location}
         style={styles.picker}
-        onValueChange={(itemValue) => handleLocationFilter(itemValue)}
-      >
+        onValueChange={itemValue => handleLocationFilter(itemValue)}>
         <Picker.Item label="All Locations" value="" />
         {locations.map((loc, index) => (
           <Picker.Item key={`${loc}-${index}`} label={loc} value={loc} />
@@ -471,24 +465,33 @@ const [suggestions, setSuggestions] = useState([]);
       ) : (
         <FlatList
           data={filteredServices}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
+          keyExtractor={item => item.id}
+          renderItem={({item}) => (
             <View style={styles.card}>
-              <Image source={{ uri: item.imageUrl }} style={styles.image} />
+              <Image source={{uri: item.imageUrl}} style={styles.image} />
               <View style={styles.cardContent}>
                 <Text style={styles.serviceName}>{item.serviceName}</Text>
                 <Text style={styles.price}> ₱ {item.servicePrice}</Text>
                 <Text style={styles.supplierName}>⭐ {item.averageRating}</Text>
-                <Text style={styles.location}>Supplier: {item.supplierName}</Text>
-                <Text style={styles.supplierName}>Address: {item.Location}</Text>
-                <Text style={styles.gcash}> Required Down Payment: {item.DownPayment}</Text>
-                <Text style={styles.gcash}> GCash Number: {item.gcashNumber}</Text>
-                <View style={styles.line}/>
+                <Text style={styles.location}>
+                  Supplier: {item.supplierName}
+                </Text>
+                <Text style={styles.supplierName}>
+                  Address: {item.Location}
+                </Text>
+                <Text style={styles.gcash}>
+                  {' '}
+                  Required Down Payment: {item.DownPayment}
+                </Text>
+                <Text style={styles.gcash}>
+                  {' '}
+                  GCash Number: {item.gcashNumber}
+                </Text>
+                <View style={styles.line} />
                 <Text style={styles.description}>{item.description}</Text>
                 <TouchableOpacity
                   style={styles.bookButton}
-                  onPress={() => handleBooking(item)}
-                >
+                  onPress={() => handleBooking(item)}>
                   <Text style={styles.bookButtonText}>Book Now</Text>
                 </TouchableOpacity>
                 {/* <TouchableOpacity 
@@ -503,128 +506,149 @@ const [suggestions, setSuggestions] = useState([]);
         />
       )}
 
-<Modal visible={modalVisible} animationType="slide" transparent={true}>
-      <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
-        <View style={styles.modalOverlay}></View>
-      </TouchableWithoutFeedback>
-      <View style={styles.modalContainer}>
-        <FlatList
-          data={['dummy']} // Placeholder to render the form fields
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={() => (
-            <>
-              <Text style={styles.modalTitle}>Book {selectedService?.serviceName}</Text>
+      <Modal visible={modalVisible} animationType="slide" transparent={true}>
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}></View>
+        </TouchableWithoutFeedback>
+        <View style={styles.modalContainer}>
+          <FlatList
+            data={['dummy']} // Placeholder to render the form fields
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={() => (
+              <>
+                <Text style={styles.modalTitle}>
+                  Book {selectedService?.serviceName}
+                </Text>
 
-              <Text style={styles.label}>Event Start Date:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Event Date"
-                value={eventDate.toLocaleDateString()}
-                onFocus={showDatePickerHandler}
-              />
-              {showDatePicker && (
-                <DateTimePicker
-                  value={eventDate}
-                  mode="date"
-                  display="default"
-                  onChange={handleDateChange}
+                <Text style={styles.label}>Event Start Date:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Event Date"
+                  value={eventDate.toLocaleDateString()}
+                  onFocus={showDatePickerHandler}
                 />
-              )}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={eventDate}
+                    mode="date"
+                    display="default"
+                    onChange={handleDateChange}
+                  />
+                )}
 
-              <Text style={styles.label}>Event End Date:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Event Duration (YYYY-MM-DD)"
-                value={eventDuration.toLocaleDateString()}
-                onFocus={() => setShowDurationPicker(true)}
-              />
-              {showDurationPicker && (
-                <DateTimePicker
-                  value={eventDuration}
-                  mode="date"
-                  display="default"
-                  onChange={handleDurationChange}
+                <Text style={styles.label}>Event End Date:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Event Duration (YYYY-MM-DD)"
+                  value={eventDuration.toLocaleDateString()}
+                  onFocus={() => setShowDurationPicker(true)}
                 />
-              )}
+                {showDurationPicker && (
+                  <DateTimePicker
+                    value={eventDuration}
+                    mode="date"
+                    display="default"
+                    onChange={handleDurationChange}
+                  />
+                )}
 
-              <Text style={styles.label}>Event Time:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Event Time"
-                value={eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                onFocus={showTimePickerHandler}
-              />
-              {showTimePicker && (
-                <DateTimePicker
-                  value={eventTime}
-                  mode="time"
-                  display="default"
-                  onChange={handleTimeChange}
+                <Text style={styles.label}>Event Time:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Event Time"
+                  value={eventTime.toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  onFocus={showTimePickerHandler}
                 />
-              )}
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={eventTime}
+                    mode="time"
+                    display="default"
+                    onChange={handleTimeChange}
+                  />
+                )}
 
-              <Text style={styles.label}>Event Name:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Event Name"
-                value={eventName}
-                placeholderTextColor={'#888'}
-                onChangeText={seteventName}
-              />
-              {suggestions.length > 0 && (
-                <FlatList
-                  data={suggestions}
-                  keyExtractor={(item, index) => index.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity onPress={() => seteventName(item)}>
-                      <Text style={styles.suggestionItem}>{item}</Text>
-                    </TouchableOpacity>
-                  )}
+                <Text style={styles.label}>Event Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter Event Name"
+                  value={eventName}
+                  placeholderTextColor={'#888'}
+                  onChangeText={seteventName}
                 />
-              )}
+                {suggestions.length > 0 && (
+                  <FlatList
+                    data={suggestions}
+                    keyExtractor={(item, index) => index.toString()}
+                    renderItem={({item}) => (
+                      <TouchableOpacity onPress={() => seteventName(item)}>
+                        <Text style={styles.suggestionItem}>{item}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                )}
 
-              <Text style={styles.label}>Event Place:</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter Event Place"
-                value={eventPlace}
-                placeholderTextColor={'#888'}
-                onChangeText={setEventPlace}
-              />
+                <Text style={styles.label}>Event Place:</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter Event Place"
+                  value={eventPlace}
+                  placeholderTextColor={'#888'}
+                  onChangeText={setEventPlace}
+                />
 
-              <Text style={styles.label}>Select Event Venue Type:</Text>
-              <Picker
-                selectedValue={venueType}
-                style={styles.picker1}
+                <Text style={styles.label}>Select Event Venue Type:</Text>
+                <Picker
+                  selectedValue={venueType}
+                  style={styles.picker1}
+                  onValueChange={itemValue => setserviceName(itemValue)}
+                  onValueChange={itemValue => setVenueType(itemValue)}>
+                  <Picker.Item label="Select Venue" value="" />
+                  <Picker.Item label="Indoor" value="Indoor" />
+                  <Picker.Item label="Outdoor" value="Outdoor" />
+                </Picker>
 
-                onValueChange={(itemValue) => setserviceName(itemValue)}
+                <Text style={styles.label}>Select Event Category:</Text>
+                <Picker
+                  selectedValue={serviceName}
+                  style={styles.picker1}
+                  onValueChange={itemValue => setserviceName(itemValue)}>
+                  <Picker.Item label="Select Category" value="" />
+                  <Picker.Item
+                    label="Food and Beverage"
+                    value="Food and Beverage"
+                  />
+                  <Picker.Item
+                    label="Venue and Spaces"
+                    value="Venue and Spaces"
+                  />
+                  <Picker.Item label="Entertainment" value="Entertainment" />
+                  <Picker.Item
+                    label="Decor and Styling"
+                    value="Decor and Styling"
+                  />
+                  <Picker.Item
+                    label="Photography and Videography"
+                    value="Photography and Videography"
+                  />
+                  <Picker.Item
+                    label="Event and Rentals"
+                    value="Event and Rentals"
+                  />
+                  <Picker.Item
+                    label="Event Planning and Coordination"
+                    value="Event Planning and Coordination"
+                  />
+                  <Picker.Item
+                    label="Make-up and Wardrobe"
+                    value="Make-up and Wardrobe"
+                  />
+                </Picker>
 
-                onValueChange={(itemValue) => setVenueType(itemValue)}
-
-              >
-                <Picker.Item label="Select Venue" value="" />
-                <Picker.Item label="Indoor" value="Indoor" />
-                <Picker.Item label="Outdoor" value="Outdoor" />
-              </Picker>
-
-              <Text style={styles.label}>Select Event Category:</Text>
-              <Picker
-                selectedValue={serviceName}
-                style={styles.picker1}
-                onValueChange={(itemValue) => setserviceName(itemValue)}
-              >
-                <Picker.Item label="Select Category" value="" />
-                <Picker.Item label="Food and Beverage" value="Food and Beverage" />
-                <Picker.Item label="Venue and Spaces" value="Venue and Spaces" />
-                <Picker.Item label="Entertainment" value="Entertainment" />
-                <Picker.Item label="Decor and Styling" value="Decor and Styling" />
-                <Picker.Item label="Photography and Videography" value="Photography and Videography" />
-                <Picker.Item label="Event and Rentals" value="Event and Rentals" />
-                <Picker.Item label="Event Planning and Coordination" value="Event Planning and Coordination" />
-                <Picker.Item label="Make-up and Wardrobe" value="Make-up and Wardrobe" />
-              </Picker>
-
-{/* 
+                {/* 
               <TextInput
                 style={styles.input}
                 placeholder="Enter GCash Reference Number"
@@ -633,16 +657,16 @@ const [suggestions, setSuggestions] = useState([]);
                 onChangeText={setreferenceNumber}
               /> */}
 
-
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmitBooking}>
-                <Text style={styles.submitButtonText}>Submit Booking</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        />
-      </View>
-    </Modal>
-
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleSubmitBooking}>
+                  <Text style={styles.submitButtonText}>Submit Booking</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -720,7 +744,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     elevation: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.2,
     shadowRadius: 5,
   },
@@ -748,7 +772,7 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     marginTop: 6,
   },
-  line:{
+  line: {
     width: '100%',
     alignSelf: 'center',
     height: 2,
@@ -854,7 +878,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#5392DD',
   },
-  icon:{
+  icon: {
     width: 35,
     height: 35,
     top: '10%',
