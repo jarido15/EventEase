@@ -51,12 +51,13 @@ const SupplierRegister2 = ({ navigation }) => {
         <Text style={styles.title}>Create Your Business Profile</Text>
         <Text style={styles.subtitle}>Let's set up your business details.</Text>
 
-        <TextInput style={styles.input} placeholder="Business Name" value={BusinessName} onChangeText={setBusinessName} />
-        <TextInput style={styles.input} placeholder="Location" value={Location} onChangeText={setLocation} />
+        <TextInput style={styles.input} placeholder="Business Name" value={BusinessName} placeholderTextColor="#888" onChangeText={setBusinessName} />
+        <TextInput style={styles.input} placeholder="Location" value={Location} placeholderTextColor="#888" onChangeText={setLocation} />
         <TextInput 
           style={styles.input} 
           placeholder="Business Contact Number" 
           value={ContactNumber} 
+          placeholderTextColor="#888"
           onChangeText={setContactNumber} 
           keyboardType="number-pad" 
           maxLength={11} // Limit input to 11 digits
