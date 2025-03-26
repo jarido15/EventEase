@@ -11,47 +11,54 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   FlatList,
+  Modal,
 } from 'react-native';
 import { auth, firestore } from '../../firebaseConfig';
 import { BackHandler, Alert } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 
 const HomeScreen = ({ navigation }) => {
   const [fullName, setFullName] = useState('');
   const [events, setEvents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+
+  const fetchUserData = async () => {
+    const user = auth().currentUser;
+    if (user) {
+      try {
+        const userDocRef = firestore().collection("Clients").doc(user.uid);
+        const userDoc = await userDocRef.get();
+        if (userDoc.exists) {
+          setFullName(userDoc.data().fullName);
+        }
+
+        // Fetch only upcoming events
+        const eventsSnapshot = await userDocRef
+          .collection("MyEvent")
+          .where("status", "==", "Upcoming")
+          .get();
+
+        const fetchedEvents = eventsSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          eventDate: doc.data().eventDate,
+          venueType: doc.data().venueType,
+        }));
+
+        setEvents(fetchedEvents);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    }
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const user = auth().currentUser;
-      if (user) {
-        try {
-          const userDocRef = firestore().collection("Clients").doc(user.uid);
-          const userDoc = await userDocRef.get();
-          if (userDoc.exists) {
-            setFullName(userDoc.data().fullName);
-          }
-
-          // Fetch only events with "Upcoming" status
-          const eventsSnapshot = await userDocRef
-            .collection("MyEvent")
-            .where("status", "==", "Upcoming") // Filter for Upcoming events only
-            .get();
-
-          const fetchedEvents = eventsSnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            eventDate: doc.data().eventDate,
-            venueType: doc.data().venueType,
-          }));
-
-          setEvents(fetchedEvents);
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      }
-    };
-
     fetchUserData();
   }, []);
 
@@ -108,6 +115,78 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const handleDeleteEvent = async (eventId) => {
+    Alert.alert(
+      "Delete Event",
+      "Are you sure you want to delete this event?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              const user = auth().currentUser;
+              const userDocRef = firestore().collection("Clients").doc(user.uid);
+              await userDocRef.collection("MyEvent").doc(eventId).delete();
+
+              setEvents(events.filter(event => event.id !== eventId));
+            } catch (error) {
+              console.error("Error deleting event:", error);
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
+  const handleEditEvent = (event) => {
+    setSelectedEvent(event);
+    setModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (selectedEvent) {
+      try {
+        const user = auth().currentUser;
+        const userDocRef = firestore().collection("Clients").doc(user.uid);
+        await userDocRef.collection("MyEvent").doc(selectedEvent.id).update({
+          eventName: selectedEvent.eventName,
+          eventPlace: selectedEvent.eventPlace,
+          eventTime: selectedEvent.eventTime,
+          eventDate: selectedEvent.eventDate,
+        });
+
+        fetchUserData();
+        setModalVisible(false);
+      } catch (error) {
+        console.error("Error updating event:", error);
+      }
+    }
+  };
+
+  const handleDateChange = (event, selectedDate) => {
+    if (selectedDate) {
+      setShowDatePicker(false); // Hide the picker after selection
+      setSelectedEvent((prevEvent) => ({
+        ...prevEvent,
+        eventDate: selectedDate.toISOString().split('T')[0], // Format: YYYY-MM-DD
+      }));
+    }
+  };
+  
+  const handleTimeChange = (event, selectedTime) => {
+    if (selectedTime) {
+      setShowTimePicker(false); // Hide the picker after selection
+      const hours = selectedTime.getHours().toString().padStart(2, '0');
+      const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
+      setSelectedEvent((prevEvent) => ({
+        ...prevEvent,
+        eventTime: `${hours}:${minutes}`, // Format: HH:MM
+      }));
+    }
+  };
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -161,6 +240,16 @@ const HomeScreen = ({ navigation }) => {
                     <Text style={styles.eventServices}>
                       Services: {item.selectedServices?.join(', ') || 'No services selected'}
                     </Text>
+
+                    {/* Edit & Delete Buttons */}
+                    <View style={styles.actionButtons}>
+                      <TouchableOpacity style={styles.editButton} onPress={() => handleEditEvent(item)}>
+                        <Text style={styles.buttonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteEvent(item.id)}>
+                        <Text style={styles.buttonText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
               )}
@@ -169,6 +258,71 @@ const HomeScreen = ({ navigation }) => {
           ) : (
             <Text style={styles.noEventsText}>No upcoming events yet.</Text>
           )}
+
+           {/* Edit Event Modal */}
+           <Modal visible={modalVisible} animationType="fade" transparent={true}>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Edit Event</Text>
+
+      {/* Event Name Input */}
+      <TextInput
+        style={styles.modalInput}
+        value={selectedEvent?.eventName}
+        onChangeText={(text) => setSelectedEvent({ ...selectedEvent, eventName: text })}
+        placeholder="Event Name"
+        placeholderTextColor="#888"
+      />
+
+      {/* Event Place Input */}
+      <TextInput
+        style={styles.modalInput}
+        value={selectedEvent?.eventPlace}
+        onChangeText={(text) => setSelectedEvent({ ...selectedEvent, eventPlace: text })}
+        placeholder="Event Place"
+        placeholderTextColor="#888"
+      />
+
+      {/* Date Picker */}
+      <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+        <Text style={styles.dateTimeText}>{selectedEvent?.eventDate || '📅 Select Date'}</Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          mode="date"
+          value={selectedEvent?.eventDate ? new Date(selectedEvent.eventDate) : new Date()}
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
+
+      {/* Time Picker */}
+      <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
+        <Text style={styles.dateTimeText}>{selectedEvent?.eventTime || '⏰ Select Time'}</Text>
+      </TouchableOpacity>
+      {showTimePicker && (
+        <DateTimePicker
+          mode="time"
+          value={selectedEvent?.eventTime ? new Date() : new Date()} // Default to current time
+          display="default"
+          onChange={handleTimeChange}
+        />
+      )}
+
+      {/* Action Buttons */}
+      <View style={styles.modalButtons}>
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
+          <Text style={styles.buttonText}>Save</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+          <Text style={styles.buttonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -306,6 +460,100 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#A0A0A0',
     marginTop: 20,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  editButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+  },
+  deleteButton: {
+    backgroundColor: '#FF3B30',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dark background overlay
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 15,
+  },
+  modalInput: {
+    width: '100%',
+    height: 50,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    marginBottom: 15,
+    backgroundColor: '#F8F8F8',
+    color: '#333',
+  },
+  dateTimeButton: {
+    width: '100%',
+    height: 50,
+    backgroundColor: '#E6F2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+    marginBottom: 15,
+  },
+  dateTimeText: {
+    fontSize: 16,
+    color: '#5392DD',
+    fontWeight: '500',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 15,
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginRight: 5,
+  },
+  cancelButton: {
+    flex: 1,
+    backgroundColor: '#F44336',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginLeft: 5,
+  },
+  buttonText: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 
