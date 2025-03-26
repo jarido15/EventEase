@@ -42,7 +42,7 @@ const MyEventsScreen = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            eventDate: data.date?.toDate() || new Date(),
+             eventDate: data.eventDate || "",
             eventImage: data.eventImage || null,
             eventName: data.eventName || "Unnamed Event",
             eventTime: data.eventTime || "Unknown Time",
