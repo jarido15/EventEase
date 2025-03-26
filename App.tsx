@@ -101,6 +101,7 @@ function MainBottomTabs() {
         <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
         <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
         <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
+       <Stack.Screen name="CompleteService" component={CompleteService} />
         <Stack.Screen name="BookingScreen" component={BookingScreen} />
         <Stack.Screen name="CreateEvent" component={CreateEvent} />
 <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
