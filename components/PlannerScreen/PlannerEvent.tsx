@@ -238,7 +238,7 @@ const PlannerEvent = ({ navigation }) => {
   <ActivityIndicator size="large" color="#5392DD" />
 ) : (
   <TouchableOpacity style={styles.button} onPress={handleCreateEvent} disabled={loading}>
-    <Text style={styles.buttonText}>Create Event</Text>
+    <Text style={styles.buttonText}>Create Service</Text>
   </TouchableOpacity>
 )}
         </ScrollView>

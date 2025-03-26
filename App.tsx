@@ -193,6 +193,10 @@ function SupplierBottomTabs() {
       <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
       <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
       <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
+      <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
+      <Stack.Screen name="EditService" component={EditServiceScreen}
+              options={{title: 'Edit Service'}}
+            />
     </SupplierStack.Navigator>
   );
 }
@@ -250,7 +254,49 @@ function SupplierTabNavigator() {
     </Tab.Navigator>
   );
 }
-function PlannerBottomTabs() {
+// PlannerBottomTabs() function
+function PlannerBottomTabs() 
+
+{
+  const SupplierStack = createStackNavigator();
+  return (
+    <SupplierStack.Navigator screenOptions={{headerShown: false}}>
+      <SupplierStack.Screen
+        name="PlannerMainTabs"
+        component={PlannerTabNavigator}
+      />
+      <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
+      <Stack.Screen
+        name="SupplierChatScreen"
+        component={SupplierChatScreen}
+        options={{title: 'Chat'}}
+      />
+      <SupplierStack.Screen
+        name="SupplierProfileScreen"
+        component={SupplierProfileScreen}
+      />
+       <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
+            <Stack.Screen
+              name="PlannerHomeScreen"
+              component={PlannerHomeScreen}
+            />
+            <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
+            <Stack.Screen
+              name="EditService"
+              component={EditServiceScreen}
+              options={{title: 'Edit Service'}}
+            />
+            <Stack.Screen
+              name="PlannerChatScreen"
+              component={PlannerChatScreen}
+              options={{title: 'Chat'}}
+            />
+            <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
+
+    </SupplierStack.Navigator>
+  );
+}
+function PlannerTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
