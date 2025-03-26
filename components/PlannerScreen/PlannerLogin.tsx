@@ -21,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PlannerLogin = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false); // State for loading
 
   const handleLogin = async () => {
@@ -89,14 +90,19 @@ const PlannerLogin = ({ navigation }) => {
             autoCapitalize="none"
           />
 
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            placeholderTextColor="#888"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+          <View style={styles.passwordContainer}>
+                      <TextInput
+                        style={styles.passwordInput}
+                        placeholder="Enter your password"
+                        placeholderTextColor="#888"
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry={!showPassword}
+                      />
+                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                        <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+                      </TouchableOpacity>
+                    </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
             {loading ? (
@@ -206,6 +212,30 @@ const styles = StyleSheet.create({
     color: 'black',
     marginTop: 15,
     fontSize: 14,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '90%',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 20,
+    backgroundColor: '#fff',
+    marginBottom: 5,
+    bottom: 80,
+    paddingRight: 15,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 15,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
+    color: '#000',
+  },
+  toggle: {
+    color: '#5392DD',
+    fontWeight: 'bold',
+    paddingHorizontal: 10,
   },
 });
 
