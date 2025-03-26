@@ -141,212 +141,156 @@ const [suggestions, setSuggestions] = useState([]);
     try {
       const currentUser = auth().currentUser;
       if (!currentUser) {
-        Alert.alert("Error", "You must be logged in to book a service.");
+        Alert.alert('Error', 'You must be logged in to book a service.');
         return;
       }
-  
-      if (!selectedService?.supplierId || !eventDate || !eventDuration || !eventPlace || !eventTime) {
-        Alert.alert("Error", "Please fill in all the required fields.");
-        return;
-      }
-      console.log("eventName:", eventName);
-      console.log("eventName before query:", eventName);
-console.log("Trimmed eventName:", eventName?.trim());
-      if (!eventName || typeof eventName !== "string") {
-        Alert.alert("Error", "Event name is missing or invalid.");
-        return;
-      }
-      
-      const trimmedEventName = eventName.trim();
 
-      const formattedEventDate = eventDate instanceof Date 
-      ? eventDate.toLocaleDateString("en-CA") 
-      : eventDate;
-    
-      const formattedEventEndDate = eventDuration instanceof Date 
-      ? eventDuration.toISOString().split("T")[0] 
-      : eventDuration;
-      const formattedEventTime = eventTime instanceof Date 
-      ? eventTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }).replace(/\u202F/g, " ")
-      : eventTime;
-  
-      const myEventSnapshot = await firestore()
-        .collection("Clients")
-        .doc(currentUser.uid)
-        .collection("MyEvent")
-        .where("status", "==", "Upcoming")
-        .get({ source: "server" });
-  
-        const matchingEvent = myEventSnapshot.docs.find(doc => {
-          const event = doc.data();
-        
-          console.log("Checking Event:", event); // Print Firestore event data
-          console.log("Formatted Event Date:", formattedEventDate);
-          console.log("Formatted Event Time:", formattedEventTime);
-          console.log("Trimmed Event Name:", trimmedEventName);
-          console.log("Event Place:", eventPlace?.trim().toLowerCase());
-        
-          const eventNameMatch = event.eventName?.trim().toLowerCase() === trimmedEventName.toLowerCase();
-          const eventDateMatch = event.eventDate === formattedEventDate;
-          const eventTimeMatch = event.eventTime === formattedEventTime;
-          const eventPlaceMatch = event.venue?.trim().toLowerCase() === eventPlace?.trim().toLowerCase();
-        
-          if (!eventDateMatch) {
-            console.log("Mismatch in eventDate:");
-            console.log(`Database Value: ${event.eventDate}`);
-            console.log(`Formatted Value: ${formattedEventDate}`);
-          }
-        
-          if (!eventTimeMatch) {
-            console.log("Mismatch in eventTime:");
-            console.log("Database Value:", event.eventTime, [...event.eventTime]);
-            console.log("Formatted Value:", formattedEventTime, [...formattedEventTime]);
-          }
-        
-          return eventNameMatch && eventDateMatch && eventTimeMatch && eventPlaceMatch;
+      if (
+        !selectedService?.supplierId ||
+        !eventDate ||
+        !eventTime ||
+        !eventPlace
+      ) {
+        Alert.alert('Error', 'Please fill in all the required fields.');
+        return;
+      }
+
+      // Format date & time correctly
+      const formatDate = date => date.toISOString().split('T')[0]; // YYYY-MM-DD
+      const formatTime = time =>
+        time.toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
         });
-        
-        
-        
-  
-      if (!matchingEvent) {
-        let errorMessage = "No matching event found with the provided details:";
-        const event = myEventSnapshot.docs[0]?.data();
-        if (event) {
-          if (event.eventName.trim().toLowerCase() !== trimmedEventName.toLowerCase()) {
-            errorMessage += "\n- Event Name mismatch";
-          }
-          if (!event.eventDate.includes(formattedEventDate)) {
-            errorMessage += "\n- Event Date mismatch";
-          }
-          if (!event.eventTime.startsWith(formattedEventTime)) {
-            errorMessage += "\n- Event Time mismatch";
-          }
-          if (event.eventPlace.trim().toLowerCase() !== eventPlace.trim().toLowerCase()) {
-            errorMessage += "\n- Event Place mismatch";
-          }
+
+      const formattedEventDate = formatDate(eventDate);
+      const formattedEventTime = formatTime(eventTime);
+      const formattedEventPlace = eventPlace ? eventPlace.trim() : ''; // Fixed: Prevent undefined error
+      const formattedEventName = eventName ? eventName.trim() : ''; // Fixed: Prevent undefined error
+
+      console.log('Formatted Input Data:', {
+        eventName: formattedEventName,
+        eventDate: formattedEventDate,
+        eventTime: formattedEventTime,
+        eventPlace: formattedEventPlace,
+      });
+
+      // Fetch upcoming events from MyEvent subcollection
+      const myEventSnapshot = await firestore()
+        .collection('Clients')
+        .doc(currentUser.uid)
+        .collection('MyEvent')
+        .where('status', '==', 'Upcoming')
+        .get();
+
+      if (myEventSnapshot.empty) {
+        Alert.alert('Error', 'No upcoming events found.');
+        return;
+      }
+
+      let matchingEvent = null;
+
+      myEventSnapshot.docs.forEach(doc => {
+        const event = doc.data();
+        console.log('Stored Event in MyEvent:', event);
+
+        if (
+          (event.eventName ? event.eventName.trim() : '') ===
+            formattedEventName &&
+          event.eventDate === formattedEventDate &&
+          event.eventTime === formattedEventTime &&
+          (event.eventPlace ? event.eventPlace.trim() : '') ===
+            formattedEventPlace
+        ) {
+          matchingEvent = event;
         }
-        Alert.alert("Error", errorMessage);
+      });
+
+      if (!matchingEvent) {
+        Alert.alert(
+          'Error',
+          'No matching event found with the provided details (name, date, time, or place).',
+        );
         return;
       }
-  
+
+      // Check if the service is already booked for this date and time
       const existingBookingSnapshot = await firestore()
-        .collection("Bookings")
-        .where("serviceId", "==", selectedService.id)
-        .where("eventDate", "==", formattedEventDate)
-        .where("eventTime", "==", formattedEventTime)
+        .collection('Bookings')
+        .where('serviceId', '==', selectedService.id)
+        .where('eventDate', '==', formattedEventDate)
+        .where('eventTime', '==', formattedEventTime)
         .get();
-  
+
       if (!existingBookingSnapshot.empty) {
-        Alert.alert("Error", "This service is already booked for the selected time.");
+        Alert.alert(
+          'Error',
+          'This service is already booked for the selected time.',
+        );
         return;
       }
-  
+
+      // Check if the user has already booked this service
       const userBookingSnapshot = await firestore()
-        .collection("Bookings")
-        .where("uid", "==", currentUser.uid)
-        .where("serviceId", "==", selectedService.id)
+        .collection('Bookings')
+        .where('uid', '==', currentUser.uid)
+        .where('serviceId', '==', selectedService.id)
         .get();
-  
+
       if (!userBookingSnapshot.empty) {
-        Alert.alert("Error", "You have already booked this service.");
+        Alert.alert('Error', 'You have already booked this service.');
         return;
       }
-  
-      const serviceRef = firestore()
-        .collection("Supplier")
-        .doc(selectedService.supplierId)
-        .collection("Services")
-        .doc(selectedService.id);
-  
-      const serviceDoc = await serviceRef.get();
-      if (!serviceDoc.exists) {
-        throw new Error("Service document not found");
-      }
-  
-      const serviceData = serviceDoc.data();
-      const unavailableDates = serviceData?.unavailableDates || [];
-  
-      const eventStartDate = new Date(eventDate);
-      const eventEndDate = new Date(eventDuration);
-      const today = new Date();
-  
-      eventStartDate.setHours(0, 0, 0, 0);
-      eventEndDate.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
-  
-      if (eventEndDate < eventStartDate) {
-        Alert.alert("Error", "Event duration must be the same day or later than the event start date.");
-        return;
-      }
-  
-      if (eventEndDate < today) {
-        Alert.alert("Error", "Event duration cannot be in the past.");
-        return;
-      }
-  
-      const isUnavailable = unavailableDates.some(date => {
-        return date.eventDate === formattedEventDate || date.eventDuration === formattedEventEndDate;
-      });
-  
-      if (isUnavailable) {
-        Alert.alert("Error", "This service is unavailable for the selected date and time.");
-        return;
-      }
-  
-      const newUnavailableDates = [
-        ...unavailableDates,
-        { eventDate: formattedEventDate, eventDuration: formattedEventEndDate }
-      ];
-  
-      await serviceRef.update({
-        unavailableDates: newUnavailableDates
-      });
-  
+
+      // Proceed with booking
       const bookingData = {
         uid: currentUser.uid,
-        serviceId: selectedService.id || "",
-        supplierId: selectedService.supplierId || "",
-        serviceName: selectedService.serviceName || "",
-        supplierName: selectedService.supplierName || "",
-        location: selectedService.location || "",
+        serviceId: selectedService.id || '',
+        supplierId: selectedService.supplierId || '',
+        serviceName: selectedService.serviceName || '',
+        supplierName: selectedService.supplierName || '',
+        location: selectedService.location || '',
         servicePrice: selectedService.servicePrice || 0,
-        imageUrl: selectedService.imageUrl || "",
+        imageUrl: selectedService.imageUrl || '',
         timestamp: firestore.FieldValue.serverTimestamp(),
-        status: "Pending",
+        status: 'Pending',
         eventTime: formattedEventTime,
         eventDate: formattedEventDate,
-        eventPlace: eventPlace || "",
-        venueType: venueType || "",
-        paymentMethod: paymentMethod || "",
-        referenceNumber: referenceNumber || "",
-        eventName: eventName || "",
-        eventDuration: formattedEventEndDate,
+        eventPlace: formattedEventPlace,
+        venueType: venueType || '',
+        paymentMethod: paymentMethod || '',
+        referenceNumber: referenceNumber || '',
+        eventName: formattedEventName,
+        eventDuration: formatDate(eventDuration),
       };
-  
-      const docRef = await firestore().collection("Bookings").add(bookingData);
-  
-      await serviceRef.update({ status: "Pending" });
-  
-      await sendPushNotification(selectedService.supplierId, selectedService.serviceName);
-  
+
+      const docRef = await firestore().collection('Bookings').add(bookingData);
+
+      await sendPushNotification(
+        selectedService.supplierId,
+        selectedService.serviceName,
+      );
+
       navigation.navigate('PaymentMethodScreen', {
         bookingId: docRef.id,
         amount: selectedService.servicePrice,
         referenceNumber,
         eventName,
         eventDate: formattedEventDate,
-        eventDuration: formattedEventEndDate,
+        eventDuration: formatDate(eventDuration),
         serviceName: selectedService.serviceName,
       });
-  
+
       setModalVisible(false);
     } catch (error) {
-      console.error("Error booking service:", error);
-      Alert.alert("Error", error.message || "Failed to book the service. Please try again.");
+      console.error('Error booking service:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to book the service. Please try again.',
+      );
     }
   };
-  
   
 
   
