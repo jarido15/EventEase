@@ -1,12 +1,12 @@
 /* eslint-disable curly */
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react/no-unstable-nested-components */
-import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Image } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, ActivityIndicator} from 'react-native';
+import {NavigationContainer} from '@react-navigation/native';
+import {createStackNavigator} from '@react-navigation/stack';
+import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import {Image} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth from '@react-native-firebase/auth';
 // Import Screens
@@ -21,9 +21,6 @@ import SupplierCategory from './components/SupplierScreen/SupplierCategory';
 import RegisterScreen2 from './components/SupplierScreen/RegisterScreen2';
 import SupplierHomeScreen from './components/SupplierScreen/SupplierHomeScreen';
 import CreateEvent from './components/ClientScreens/CreateEvent';
-
-
-
 
 // Import Bottom Tabs Components
 import HomeScreen from './components/ClientScreens/HomeScreen';
@@ -52,17 +49,13 @@ import EditServiceScreen from './components/PlannerScreen/PlannerEditService';
 import MyEventsScreen from './components/ClientScreens/MyEvent';
 import BookingScreen from './components/ClientScreens/BookingScreen';
 import FavoriteScreen from './components/ClientScreens/FavoriteScreen';
-import CompleteService from './components/ClientScreens/CompleteService';
 import SupplierProfile from './components/ClientScreens/SupplierProfile';
 import SearchPlannerScreen from './components/ClientScreens/SearchPlanner';
 import ViewBookedServices from './components/ClientScreens/ViewBookedServices';
 
 import PaymentMethodScreen from './components/ClientScreens/PaymentMethodScreen';
 import ForgotPasswordScreen from './components/ForgotPassword';
-
-
-
-
+import CompleteService from './components/ClientScreens/CompleteService';
 
 // Import Images
 const homeIcon = require('./components/images/home.png');
@@ -77,34 +70,46 @@ const plannerAdd = require('./components/images/add.png');
 const plannerChat = require('./components/images/telegram.png');
 const plannerUser = require('./components/images/planner-user.png');
 
-
-
 // Create Navigators
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-
 function MainBottomTabs() {
   const SupplierStack = createStackNavigator();
   return (
-    <SupplierStack.Navigator screenOptions={{ headerShown: false }}>
+    <SupplierStack.Navigator screenOptions={{headerShown: false}}>
       <SupplierStack.Screen name="main" component={BottomTabs} />
       <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
-      <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
-      <SupplierStack.Screen name="SupplierProfileScreen" component={SupplierProfileScreen} />
+      <Stack.Screen
+        name="SupplierChatScreen"
+        component={SupplierChatScreen}
+        options={{title: 'Chat'}}
+      />
+      <SupplierStack.Screen
+        name="SupplierProfileScreen"
+        component={SupplierProfileScreen}
+      />
       <Stack.Screen name="SupplierLogin" component={LogInScreen} />
-      <Stack.Screen name="PaymentMethodScreen" component={PaymentMethodScreen} />
+      <Stack.Screen
+        name="PaymentMethodScreen"
+        component={PaymentMethodScreen}
+      />
       <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
       <Stack.Screen name="SearchPlanner" component={SearchPlannerScreen} />
-        <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
-        <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
-        <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
-        <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
-        <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
-       <Stack.Screen name="CompleteService" component={CompleteService} />
-        <Stack.Screen name="BookingScreen" component={BookingScreen} />
-        <Stack.Screen name="CreateEvent" component={CreateEvent} />
-<Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
+      <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
+      <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
+      <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
+      <Stack.Screen
+        name="ClientChatScreen"
+        component={ClientChatScreen}
+        options={{title: 'Chat'}}
+      />
+      <Stack.Screen name="ViewBookedServices" component={ViewBookedServices} />
+      <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
+      <Stack.Screen name="BookingScreen" component={BookingScreen} />
+      <Stack.Screen name="CompleteService" component={CompleteService} />
+      <Stack.Screen name="CreateEvent" component={CreateEvent} />
+      <Stack.Screen name="FavoriteScreen" component={FavoriteScreen} />
     </SupplierStack.Navigator>
   );
 }
@@ -112,9 +117,9 @@ function MainBottomTabs() {
 // Bottom Tabs Component
 function BottomTabs() {
   return (
-    <Tab.Navigator 
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
+    <Tab.Navigator
+      screenOptions={({route}) => ({
+        tabBarIcon: ({focused}) => {
           let iconSource;
           if (route.name === 'Home') iconSource = homeIcon;
           else if (route.name === 'Search') iconSource = searchIcon;
@@ -139,27 +144,26 @@ function BottomTabs() {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom
         },
-      })}
-    >
-      <Tab.Screen 
+      })}>
+      <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ headerShown: false }} // Remove header for Home tab
+        options={{headerShown: false}} // Remove header for Home tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Search"
         component={SearchScreen}
-        options={{ headerShown: false }} // Remove header for Search tab
+        options={{headerShown: false}} // Remove header for Search tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Chats"
         component={ChatsScreen}
-        options={{ headerShown: false }} // Remove header for Chats tab
+        options={{headerShown: false}} // Remove header for Chats tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{ headerShown: false }} // Remove header for Profile tab
+        options={{headerShown: false}} // Remove header for Profile tab
       />
     </Tab.Navigator>
   );
@@ -168,27 +172,36 @@ function BottomTabs() {
 function SupplierBottomTabs() {
   const SupplierStack = createStackNavigator();
   return (
-    <SupplierStack.Navigator screenOptions={{ headerShown: false }}>
-      <SupplierStack.Screen name="SupplierMainTabs" component={SupplierTabNavigator} />
+    <SupplierStack.Navigator screenOptions={{headerShown: false}}>
+      <SupplierStack.Screen
+        name="SupplierMainTabs"
+        component={SupplierTabNavigator}
+      />
       <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
-      <Stack.Screen name="SupplierChatScreen" component={SupplierChatScreen} options={{ title: 'Chat' }} />
-      <SupplierStack.Screen name="SupplierProfileScreen" component={SupplierProfileScreen} />
+      <Stack.Screen
+        name="SupplierChatScreen"
+        component={SupplierChatScreen}
+        options={{title: 'Chat'}}
+      />
+      <SupplierStack.Screen
+        name="SupplierProfileScreen"
+        component={SupplierProfileScreen}
+      />
       <Stack.Screen name="SupplierLogin" component={LogInScreen} />
       <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
-        <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
-        <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
-        <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
-        <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
+      <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
+      <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
+      <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
+      <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
     </SupplierStack.Navigator>
   );
 }
 
-
 function SupplierTabNavigator() {
   return (
-    <Tab.Navigator 
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
+    <Tab.Navigator
+      screenOptions={({route}) => ({
+        tabBarIcon: ({focused}) => {
           let iconSource;
           if (route.name === 'Home') iconSource = plannerHome;
           else if (route.name === 'Products') iconSource = plannerAdd;
@@ -208,25 +221,40 @@ function SupplierTabNavigator() {
         },
         tabBarActiveTintColor: '#5392DD',
         tabBarInactiveTintColor: 'gray',
-        tabBarShowLabel: true, 
+        tabBarShowLabel: true,
         tabBarStyle: {
           height: 70,
-          paddingBottom: 10, 
+          paddingBottom: 10,
         },
-      })}
-    >
-      <Tab.Screen name="Home" component={SupplierHomeScreen} options={{ headerShown: false }} />
-      <Tab.Screen name="Products" component={Products} options={{ headerShown: false }} />
-      <Tab.Screen name="Chats" component={SupplierChat} options={{ headerShown: false }} />
-      <Tab.Screen name="Booking" component={SupplierBookingScreen} options={{ headerShown: false }} />
+      })}>
+      <Tab.Screen
+        name="Home"
+        component={SupplierHomeScreen}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="Products"
+        component={Products}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="Chats"
+        component={SupplierChat}
+        options={{headerShown: false}}
+      />
+      <Tab.Screen
+        name="Booking"
+        component={SupplierBookingScreen}
+        options={{headerShown: false}}
+      />
     </Tab.Navigator>
   );
 }
 function PlannerBottomTabs() {
   return (
-    <Tab.Navigator 
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
+    <Tab.Navigator
+      screenOptions={({route}) => ({
+        tabBarIcon: ({focused}) => {
           let iconSource;
           if (route.name === 'Home') iconSource = plannerHome;
           else if (route.name === 'Products') iconSource = plannerAdd;
@@ -251,125 +279,149 @@ function PlannerBottomTabs() {
           height: 70, // Set custom height for the bottom tab
           paddingBottom: 10, // Optional: Adjust the padding at the bottom
         },
-      })}
-    >
-      <Tab.Screen 
+      })}>
+      <Tab.Screen
         name="Home"
         component={PlannerHomeScreen}
-        options={{ headerShown: false }} // Remove header for Home tab
+        options={{headerShown: false}} // Remove header for Home tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Products"
         component={PlannerEvent}
-        options={{ headerShown: false }} // Remove header for Search tab
+        options={{headerShown: false}} // Remove header for Search tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Chats"
         component={PlannerChat}
-        options={{ headerShown: false }} // Remove header for Chats tab
+        options={{headerShown: false}} // Remove header for Chats tab
       />
-      <Tab.Screen 
+      <Tab.Screen
         name="Profile"
         component={PlannerProfileScreen}
-        options={{ headerShown: false }} // Remove header for Profile tab
+        options={{headerShown: false}} // Remove header for Profile tab
       />
     </Tab.Navigator>
   );
 }
-
-
-
 
 // Stack Navigator with Bottom Tabs
 export default function App() {
   const [userType, setUserType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  const checkUserSession = async () => {
-    try {
-      const storedUserType = await AsyncStorage.getItem('userType');
-      
-      auth().onAuthStateChanged((user) => {
-        if (user && storedUserType) {
-          setUserType(storedUserType);
-        } else {
-          setUserType(null);
-        }
+  useEffect(() => {
+    const checkUserSession = async () => {
+      try {
+        const storedUserType = await AsyncStorage.getItem('userType');
+
+        auth().onAuthStateChanged(user => {
+          if (user && storedUserType) {
+            setUserType(storedUserType);
+          } else {
+            setUserType(null);
+          }
+          setLoading(false);
+        });
+      } catch (error) {
+        console.error('Failed to load user session', error);
         setLoading(false);
-      });
+      }
+    };
 
-    } catch (error) {
-      console.error('Failed to load user session', error);
-      setLoading(false);
-    }
-  };
-
-  checkUserSession();
-}, []);
-
+    checkUserSession();
+  }, []);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
         <ActivityIndicator size="large" color="#5392DD" />
       </View>
     );
   }
   return (
-    
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator screenOptions={{headerShown: false}}>
+        {userType === 'Client' ? (
+          <Stack.Screen name="main" component={MainBottomTabs} />
+        ) : userType === 'Supplier' ? (
+          <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
+        ) : userType === 'Planner' ? (
+          <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
+        ) : (
+          <>
+            <Stack.Screen name="GetStarted" component={GetStartedScreen} />
+            <Stack.Screen name="LoginOption" component={LoginOption} />
+            <Stack.Screen name="ClientLogin" component={ClientLogin} />
+            <Stack.Screen name="Register" component={Register} />
 
-      {userType === 'Client' ? (
-        <Stack.Screen name="main" component={MainBottomTabs} />
-      ) : userType === 'Supplier' ? (
-        <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
-      ) : userType === 'Planner' ? (
-        <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
-      ) : (
-        <>
+            <Stack.Screen
+              name="ServiceEditScreen"
+              component={ServiceEditScreen}
+            />
+            <Stack.Screen name="main" component={BottomTabs} />
+            <Stack.Screen name="SupplierLogin" component={LogInScreen} />
 
+            <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
+            <Stack.Screen name="suppliermain" component={SupplierBottomTabs} />
+            <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
+            <Stack.Screen
+              name="PlannerHomeScreen"
+              component={PlannerHomeScreen}
+            />
+            <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
+            <Stack.Screen
+              name="EditService"
+              component={EditServiceScreen}
+              options={{title: 'Edit Service'}}
+            />
+            <Stack.Screen
+              name="PlannerChatScreen"
+              component={PlannerChatScreen}
+              options={{title: 'Chat'}}
+            />
+            <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
+            <Stack.Screen
+              name="ClientChatScreen"
+              component={ClientChatScreen}
+              options={{title: 'Chat'}}
+            />
+            <Stack.Screen
+              name="SearchPlanner"
+              component={SearchPlannerScreen}
+            />
+            <Stack.Screen name="BookingScreen" component={BookingScreen} />
+            <Stack.Screen name="FavoriteScreen" component={FavoriteScreen} />
+            <Stack.Screen name="CompleteService" component={CompleteService} />
+            <Stack.Screen name="SupplierProfile" component={SupplierProfile} />
+            <Stack.Screen
+              name="ViewBookedServices"
+              component={ViewBookedServices}
+            />
+            <Stack.Screen
+              name="SupplierCategory"
+              component={SupplierCategory}
+            />
+            <Stack.Screen
+              name="SupplierRegister"
+              component={SupplierRegister}
+            />
+            <Stack.Screen
+              name="SupplierRegister2"
+              component={RegisterScreen2}
+            />
+            <Stack.Screen
+              name="PaymentMethodScreen"
+              component={PaymentMethodScreen}
+            />
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPasswordScreen}
+            />
+            <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
 
-        <Stack.Screen name="GetStarted" component={GetStartedScreen} />
-        <Stack.Screen name="LoginOption" component={LoginOption} />
-        <Stack.Screen name="ClientLogin" component={ClientLogin} />
-        <Stack.Screen name="Register" component={Register} />
-  
-     
-        <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
-        <Stack.Screen name="main" component={BottomTabs} />
-        <Stack.Screen name="SupplierLogin" component={LogInScreen} />
-
-        <Stack.Screen name="MyEventScreen" component={MyEventsScreen} />
- <Stack.Screen name="suppliermain" component={SupplierBottomTabs} />
-        <Stack.Screen name="PlannerRegister" component={PlannerRegister} />
-        <Stack.Screen name="PlannerHomeScreen" component={PlannerHomeScreen} />
-        <Stack.Screen name="PlannerLogin" component={PlannerLogin} />
-        <Stack.Screen name="EditService" component={EditServiceScreen} options={{ title: 'Edit Service' }} />
-        <Stack.Screen name="PlannerChatScreen" component={PlannerChatScreen} options={{ title: 'Chat' }} />
-        <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
-        <Stack.Screen name="ClientChatScreen" component={ClientChatScreen} options={{ title: 'Chat' }} />
-        <Stack.Screen name="SearchPlanner" component={SearchPlannerScreen} />
-        <Stack.Screen name="BookingScreen" component={BookingScreen} />
-
-        <Stack.Screen name="FavoriteScreen" component={FavoriteScreen}  />
-        <Stack.Screen name="CompleteService" component={CompleteService}  />
-        <Stack.Screen name="SupplierProfile" component={SupplierProfile}  />
-        <Stack.Screen name="ViewBookedServices" component={ViewBookedServices} />
-        <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
-        <Stack.Screen name="SupplierRegister" component={SupplierRegister} />
-        <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
-        <Stack.Screen name="PaymentMethodScreen" component={PaymentMethodScreen} />
-        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-        <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
-
-
-
-        <Stack.Screen name="CreateEvent" component={CreateEvent} />
-
-        </>
-      )}
+            <Stack.Screen name="CreateEvent" component={CreateEvent} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
