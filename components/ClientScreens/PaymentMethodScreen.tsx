@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -10,13 +10,13 @@ import {
   Image,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import {useRoute, useNavigation} from '@react-navigation/native';
 
 const PaymentMethodScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
 
- const {
+  const {
     bookingId,
     amount,
     serviceName,
@@ -27,91 +27,152 @@ const PaymentMethodScreen = () => {
     supplierName,
   } = route.params;
 
-  const [selectedMethod, setSelectedMethod] = useState<'Cash' | 'GCash' | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<'Cash' | 'GCash' | null>(
+    null,
+  );
   const [gcashRefNumber, setGcashRefNumber] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleConfirmPayment = async () => {
     if (!selectedMethod) {
-      Alert.alert("Select Payment Method", "Please choose a payment method.");
+      Alert.alert('Select Payment Method', 'Please choose a payment method.');
       return;
     }
 
-    if (selectedMethod === 'GCash' && gcashRefNumber.trim() === '') {
-      Alert.alert("Missing Reference", "Please enter your GCash reference number.");
-      return;
+    if (selectedMethod === 'GCash') {
+      if (gcashRefNumber.trim() === '') {
+        Alert.alert(
+          'Missing Reference',
+          'Please enter your GCash reference number.',
+        );
+        return;
+      }
+      if (amountPaid.trim() === '') {
+        Alert.alert('Missing Amount', 'Please enter the amount paid.');
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      const updateData: any = {
+      const updateData = {
         paymentMethod: selectedMethod,
       };
 
       if (selectedMethod === 'GCash') {
         updateData.referenceNumber = gcashRefNumber;
+        updateData.amountPaid = parseFloat(amountPaid) || 0; // Ensure valid number
       }
 
-      await firestore().collection('Bookings').doc(bookingId).update(updateData);
+      await firestore()
+        .collection('Bookings')
+        .doc(bookingId)
+        .update(updateData);
 
       setLoading(false);
-      Alert.alert("Payment Confirmed", "Your booking has been confirmed.");
-      navigation.goBack(); // or navigate to another screen
+      Alert.alert('Payment Confirmed', 'Your booking has been confirmed.');
+      navigation.goBack();
     } catch (error) {
-      console.error("Payment confirmation failed:", error);
+      console.error('Payment confirmation failed:', error);
       setLoading(false);
-      Alert.alert("Error", "Failed to confirm payment. Please try again.");
+      Alert.alert('Error', 'Failed to confirm payment. Please try again.');
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.navBar}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Image source={require('../images/back.png')} style={styles.backIcon} />
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}>
+          <Image
+            source={require('../images/back.png')}
+            style={styles.backIcon}
+          />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Select Your Payment</Text>
       </View>
 
-        <View style={styles.detailBox}>
-        <Text style={styles.label}>Event: <Text style={styles.value}>{eventName}</Text></Text>
-        <Text style={styles.label}>Service: <Text style={styles.value}>{serviceName}</Text></Text>
-        <Text style={styles.label}>Date: <Text style={styles.value}>{eventDate}</Text></Text>
-        <Text style={styles.label}>Duration: <Text style={styles.value}>{eventDuration}</Text></Text>
-        <Text style={styles.label}>Supplier: <Text style={styles.value}>{supplierName}</Text></Text>
-        <Text style={styles.label}>Gcash Number: <Text style={styles.value}>{gcashNumber}</Text></Text>
-        <Text style={styles.label}>Amount: <Text style={styles.amount}>₱{amount}</Text></Text>
+      <View style={styles.detailBox}>
+        <Text style={styles.label}>
+          Event: <Text style={styles.value}>{eventName}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Service: <Text style={styles.value}>{serviceName}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Date: <Text style={styles.value}>{eventDate}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Duration: <Text style={styles.value}>{eventDuration}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Supplier: <Text style={styles.value}>{supplierName}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Gcash Number: <Text style={styles.value}>{gcashNumber}</Text>
+        </Text>
+        <Text style={styles.label}>
+          Amount: <Text style={styles.amount}>₱{amount}</Text>
+        </Text>
       </View>
 
       <View style={styles.paymentMethodContainer}>
         <TouchableOpacity
-          style={[styles.methodButton, selectedMethod === 'Cash' && styles.selected]}
+          style={[
+            styles.methodButton,
+            selectedMethod === 'Cash' && styles.selected,
+          ]}
           onPress={() => {
             setSelectedMethod('Cash');
             setGcashRefNumber('');
-          }}
-        >
+          }}>
           <Text style={styles.methodText}>Pay on Cash</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.methodButton, selectedMethod === 'GCash' && styles.selected]}
-          onPress={() => setSelectedMethod('GCash')}
-        >
+          style={[
+            styles.methodButton,
+            selectedMethod === 'GCash' && styles.selected,
+          ]}
+          onPress={() => setSelectedMethod('GCash')}>
           <Text style={styles.methodText}>Pay on GCash</Text>
         </TouchableOpacity>
 
         {selectedMethod === 'GCash' && (
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Enter GCash Reference Number:</Text>
-            <TextInput
-              placeholder="e.g. 1234567890"
-              style={styles.input}
-              value={gcashRefNumber}
-              onChangeText={setGcashRefNumber}
-              keyboardType="numeric"
-            />
+          <View>
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>
+                Enter GCash Reference Number:
+              </Text>
+              <TextInput
+                placeholder="e.g. 1234567890123"
+                style={styles.input}
+                value={gcashRefNumber}
+                onChangeText={text => {
+                  const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
+                  setGcashRefNumber(filteredText);
+                }}
+                keyboardType="numeric"
+                maxLength={13}
+              />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Enter Amount Paid:</Text>
+              <TextInput
+                placeholder="e.g. 1000"
+                style={styles.input}
+                value={amountPaid}
+                onChangeText={text => {
+                  const numericText = text.replace(/[^0-9.]/g, ''); // Allow only numbers and decimal
+                  setAmountPaid(numericText);
+                }}
+                keyboardType="numeric"
+              />
+            </View>
           </View>
         )}
       </View>
@@ -119,8 +180,7 @@ const PaymentMethodScreen = () => {
       <TouchableOpacity
         style={styles.confirmButton}
         onPress={handleConfirmPayment}
-        disabled={loading}
-      >
+        disabled={loading}>
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
@@ -148,7 +208,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.2,
     shadowRadius: 8,
     width: '113%',
@@ -178,7 +238,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 15,
     shadowColor: '#ddd',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.1,
     shadowRadius: 5,
   },
@@ -241,7 +301,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 20,
     shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 5 },
+    shadowOffset: {width: 0, height: 5},
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
