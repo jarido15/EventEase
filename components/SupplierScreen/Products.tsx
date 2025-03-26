@@ -110,7 +110,7 @@ const Products = () => {
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={styles.label}>Product Image:</Text>
+            <Text style={styles.label}>Service Image:</Text>
 
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.image} />
