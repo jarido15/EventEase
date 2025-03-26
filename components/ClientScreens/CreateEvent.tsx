@@ -63,7 +63,7 @@ const CreateEvent = ({navigation}) => {
     }); // HH:MM AM/PM
 
   const handleCreateEvent = async () => {
-    if (!eventName || !venue) {
+    if (!eventName || !eventPlace) {
       Alert.alert('Error', 'Please fill in all required fields.');
       setLoading(false); // Ensure loading stops when validation fails
       return;
