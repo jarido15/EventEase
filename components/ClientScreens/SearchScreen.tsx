@@ -272,10 +272,13 @@ const [suggestions, setSuggestions] = useState([]);
         selectedService.serviceName,
       );
 
+     
       navigation.navigate('PaymentMethodScreen', {
         bookingId: docRef.id,
         amount: selectedService.servicePrice,
         referenceNumber,
+        gcashNumber: selectedService.gcashNumber,
+        serviceName: selectedService.serviceName,
         eventName,
         eventDate: formattedEventDate,
         eventDuration: formatDate(eventDuration),
