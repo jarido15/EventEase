@@ -278,7 +278,7 @@ const [suggestions, setSuggestions] = useState([]);
         amount: selectedService.servicePrice,
         referenceNumber,
         gcashNumber: selectedService.gcashNumber,
-        serviceName: selectedService.serviceName,
+        supplierName: selectedService.supplierName,
         eventName,
         eventDate: formattedEventDate,
         eventDuration: formatDate(eventDuration),
