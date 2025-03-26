@@ -1,4 +1,3 @@
-/* eslint-disable quotes */
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, StyleSheet, TextInput } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -10,12 +9,12 @@ interface PlannerService {
   servicePrice: string;
   imageUrl: string;
   description: string;
+  selectedServices: string[];
   location: string;
   averageRating: string;
-  supplierName: string;
   avatarUrl?: string;
-  userId: string;
-  fullName: string; // Add fullName to the PlannerService
+  uid: string;
+  fullName: string;
 }
 
 const SearchPlannerScreen = () => {
@@ -30,13 +29,11 @@ const SearchPlannerScreen = () => {
         const services: PlannerService[] = [];
 
         for (const plannerDoc of plannerRef.docs) {
-          const plannerId = plannerDoc.id;
+          const plannerId = plannerDoc.id; // Get the doc ID from Planner collection
           const plannerServicesRef = plannerDoc.ref.collection('PlannerServices');
           const servicesSnapshot = await plannerServicesRef.get();
-
-          // Get the fullName from the Planner collection
           const plannerData = plannerDoc.data();
-          const fullName = plannerData.fullName;
+          const fullName = plannerData.fullName || 'Unknown';
 
           servicesSnapshot.forEach((doc) => {
             const serviceData = doc.data();
@@ -44,14 +41,14 @@ const SearchPlannerScreen = () => {
               id: doc.id,
               serviceName: serviceData.serviceName,
               servicePrice: serviceData.servicePrice,
+              selectedServices: serviceData.selectedServices || [],
               imageUrl: serviceData.imageUrl,
               description: serviceData.description,
               location: serviceData.location,
               averageRating: serviceData.averageRating,
-              supplierName: serviceData.supplierName,
-              avatarUrl: serviceData.avatarUrl,
-              userId: serviceData.userId,
-              fullName, // Add the fullName from the Planner collection
+              avatarUrl: serviceData.avatarUrl || '',
+              uid: plannerId, // Pass the correct planner's document ID
+              fullName,
             });
           });
         }
@@ -65,17 +62,19 @@ const SearchPlannerScreen = () => {
     fetchPlannerServices();
   }, []);
 
-
-  const handleContactPress = (userId: string, supplierName: string, avatarUrl: string) => {
+  const handleContactPress = (plannerId, plannerName, plannerAvatar) => {
     navigation.navigate('ClientChatScreen', {
-      user: { id: userId, supplierName, avatarUrl },
+      user: {
+        id: plannerId, // Now correctly using the doc.id from the Planner collection
+        fullName: plannerName,
+        avatarUrl: plannerAvatar,
+      },
     });
   };
 
   const filteredServices = plannerServices.filter(service =>
     service.serviceName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  
 
   return (
     <View style={styles.container}>
@@ -90,6 +89,7 @@ const SearchPlannerScreen = () => {
         style={styles.searchInput}
         placeholder="Search services or suppliers..."
         value={searchQuery}
+        placeholderTextColor="#888"
         onChangeText={setSearchQuery}
       />
 
@@ -104,15 +104,14 @@ const SearchPlannerScreen = () => {
               <Image source={{ uri: item.imageUrl }} style={styles.image} />
               <View style={styles.cardContent}>
                 <Text style={styles.serviceName}>{item.serviceName}</Text>
-                <Text style={styles.price}>₱ {item.servicePrice}</Text>
                 <Text style={styles.supplierName}>Planner: {item.fullName}</Text>
+                <Text style={styles.price}>₱ {item.servicePrice}</Text>
                 <Text style={styles.location}>{item.location}</Text>
                 <Text style={styles.description}>{item.description}</Text>
 
-
                 <TouchableOpacity
                   style={styles.contactButton}
-                  onPress={() => handleContactPress(item.userId, item.fullName, item.avatarUrl)}
+                  onPress={() => handleContactPress(item.uid, item.fullName, item.avatarUrl)}
                 >
                   <Text style={styles.contactButtonText}>Contact Planner</Text>
                 </TouchableOpacity>
@@ -133,19 +132,19 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   headerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 15,
     paddingHorizontal: 20,
-    backgroundColor: "#5392DD",
+    backgroundColor: '#5392DD',
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    width: "109%",
-    position: "absolute",
+    width: '109%',
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -172,28 +171,28 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     backgroundColor: '#fff',
     fontSize: 16,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.2,
     shadowRadius: 10,
   },
   card: {
-    flexDirection: 'column', // Stack content vertically
+    flexDirection: 'column',
     marginBottom: 20,
     borderRadius: 15,
     backgroundColor: '#fff',
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     padding: 16,
   },
   image: {
-    width: '100%',  // Make the image take up the full width of the card
-    height: 180,  // Set a fixed height to make the image landscape
+    width: '100%',
+    height: 180,
     borderRadius: 10,
-    marginBottom: 16,  // Space between the image and details
+    marginBottom: 16,
   },
   cardContent: {
     flex: 1,
@@ -219,21 +218,15 @@ const styles = StyleSheet.create({
     color: '#777',
     marginTop: 4,
   },
+  bulletPoint: {
+    fontSize: 14,
+    color: '#555',
+    marginLeft: 10,
+  },
   description: {
     fontSize: 14,
     color: '#555',
     marginVertical: 8,
-  },
-  viewDetailsButton: {
-    marginTop: 12,
-    paddingVertical: 10,
-    backgroundColor: '#007BFF',
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  viewDetailsButtonText: {
-    color: '#fff',
-    fontSize: 16,
   },
   contactButton: {
     marginTop: 8,
