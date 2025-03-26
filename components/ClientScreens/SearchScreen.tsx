@@ -35,6 +35,8 @@ const SearchScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [location, setLocation] = useState('');
   const [locations, setLocations] = useState([
+    'Puerto Galera',
+    'San Teodoro',
     'Calapan',
     'Naujan',
     'Victoria',
@@ -42,6 +44,11 @@ const SearchScreen = () => {
     'Pola',
     'Pinamalayan',
     'Gloria',
+    'Bansud',
+    'Bongabong',
+    'Roxas',
+    'Mansalay',
+    'Bulalacao',
   ]);
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -110,25 +117,57 @@ const SearchScreen = () => {
   };
 
   const handleLocationFilter = selectedLocation => {
+    console.log('Selected Location:', selectedLocation);
     setLocation(selectedLocation);
-    filterServices(searchQuery, selectedLocation);
+  
+    // Filter services by location
+    if (selectedLocation === '') {
+      // If "All Locations" is selected, show all services
+      setFilteredServices(services);
+    } else {
+      // Otherwise, filter by the selected location
+      const filtered = services.filter(service => service.Location === selectedLocation);
+      setFilteredServices(filtered);
+    }
   };
+  
+
+  const validLocations = locations.filter(loc =>
+    ['Puerto Galera','San Teodoro','Calapan', 'Naujan', 'Victoria', 'Socorro', 'Pola', 'Pinamalayan', 'Gloria', 'Bansud','Bongabong','Roxas','Mansalay','Bulalacao', ].includes(loc)
+  );
+
+  useEffect(() => {
+    setLocations([
+      'Puerto Galera',
+      'San Teodoro',
+      'Calapan',
+      'Naujan',
+      'Victoria',
+      'Socorro',
+      'Pola',
+      'Pinamalayan',
+      'Gloria',
+      'Bansud',
+      'Bongabong',
+      'Roxas',
+      'Mansalay',
+      'Bulalacao',
+    ]);
+  }, []);
 
   const filterServices = (query, selectedLocation) => {
     let filtered = services;
-
-    if (query.trim() !== '') {
-      filtered = filtered.filter(
-        item =>
-          item.serviceName.toLowerCase().includes(query.toLowerCase()) ||
-          item.supplierName.toLowerCase().includes(query.toLowerCase()),
+  
+    if (selectedLocation) {
+      filtered = filtered.filter(service => service.Location === selectedLocation);
+    }
+  
+    if (query) {
+      filtered = filtered.filter(service =>
+        service.serviceName.toLowerCase().includes(query.toLowerCase())
       );
     }
-
-    if (selectedLocation) {
-      filtered = filtered.filter(item => item.location === selectedLocation);
-    }
-
+  
     setFilteredServices(filtered);
   };
 
@@ -427,6 +466,16 @@ const SearchScreen = () => {
     }
   }, [eventName]);
 
+  const handleContactPress = (supplierId, supplierName, supplierAvatar) => {
+    navigation.navigate('ClientChatScreen', {
+      user: {
+        id: supplierId, // Now correctly using the doc.id from the Planner collection
+        supplierName: supplierName,
+        avatarUrl: supplierAvatar,
+      },
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -448,17 +497,19 @@ const SearchScreen = () => {
         style={styles.searchBar}
         placeholder="Search services or suppliers..."
         value={searchQuery}
+        placeholderTextColor={'#888'}
         onChangeText={handleSearch}
       />
-      <Picker
-        selectedValue={location}
-        style={styles.picker}
-        onValueChange={itemValue => handleLocationFilter(itemValue)}>
-        <Picker.Item label="All Locations" value="" />
-        {locations.map((loc, index) => (
-          <Picker.Item key={`${loc}-${index}`} label={loc} value={loc} />
-        ))}
-      </Picker>
+   <Picker
+  selectedValue={location}
+  style={[styles.picker, { color: '#888' }]}
+  onValueChange={handleLocationFilter}>
+  <Picker.Item label="All Locations" value="" />
+  {validLocations.map((loc, index) => (
+    <Picker.Item key={`${loc}-${index}`} label={loc} value={loc} />
+  ))}
+</Picker>
+
 
       {filteredServices.length === 0 ? (
         <Text style={styles.noDataText}>No services available</Text>
@@ -494,12 +545,12 @@ const SearchScreen = () => {
                   onPress={() => handleBooking(item)}>
                   <Text style={styles.bookButtonText}>Book Now</Text>
                 </TouchableOpacity>
-                {/* <TouchableOpacity 
+                <TouchableOpacity 
                       style={styles.profile} 
-                      onPress={() => viewSupplierProfile(item.supplierId)}
-                    >
-                      <Text style={styles.text}>View Profile</Text>
-                    </TouchableOpacity> */}
+                      onPress={() => handleContactPress(item.uid, item.supplierName, item.avatarUrl)}
+                      >
+                      <Text style={styles.text}>Contact Supplier</Text>
+                    </TouchableOpacity>
               </View>
             </View>
           )}
@@ -603,7 +654,7 @@ const SearchScreen = () => {
                 <Text style={styles.label}>Select Event Venue Type:</Text>
                 <Picker
                   selectedValue={venueType}
-                  style={styles.picker1}
+                  style={[styles.picker1, { color: '#888' }]}
                   onValueChange={itemValue => setserviceName(itemValue)}
                   onValueChange={itemValue => setVenueType(itemValue)}>
                   <Picker.Item label="Select Venue" value="" />
@@ -611,51 +662,6 @@ const SearchScreen = () => {
                   <Picker.Item label="Outdoor" value="Outdoor" />
                 </Picker>
 
-                <Text style={styles.label}>Select Event Category:</Text>
-                <Picker
-                  selectedValue={serviceName}
-                  style={styles.picker1}
-                  onValueChange={itemValue => setserviceName(itemValue)}>
-                  <Picker.Item label="Select Category" value="" />
-                  <Picker.Item
-                    label="Food and Beverage"
-                    value="Food and Beverage"
-                  />
-                  <Picker.Item
-                    label="Venue and Spaces"
-                    value="Venue and Spaces"
-                  />
-                  <Picker.Item label="Entertainment" value="Entertainment" />
-                  <Picker.Item
-                    label="Decor and Styling"
-                    value="Decor and Styling"
-                  />
-                  <Picker.Item
-                    label="Photography and Videography"
-                    value="Photography and Videography"
-                  />
-                  <Picker.Item
-                    label="Event and Rentals"
-                    value="Event and Rentals"
-                  />
-                  <Picker.Item
-                    label="Event Planning and Coordination"
-                    value="Event Planning and Coordination"
-                  />
-                  <Picker.Item
-                    label="Make-up and Wardrobe"
-                    value="Make-up and Wardrobe"
-                  />
-                </Picker>
-
-                {/* 
-              <TextInput
-                style={styles.input}
-                placeholder="Enter GCash Reference Number"
-                value={referenceNumber}
-                placeholderTextColor={'#888'}
-                onChangeText={setreferenceNumber}
-              /> */}
 
                 <TouchableOpacity
                   style={styles.submitButton}
@@ -712,16 +718,16 @@ const styles = StyleSheet.create({
   },
   picker1: {
     height: 50,
-    backgroundColor: '#fff',
-    borderColor: '#5392DD',
-    borderWidth: 1,
+    backgroundColor: '#f9f9f9',
+    borderColor: '#000',
+    borderWidth: 2,
     borderRadius: 10,
     marginBottom: 15,
   },
   picker: {
     height: 50,
     backgroundColor: '#fff',
-    borderColor: '#5392DD',
+    borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 10,
     marginBottom: 15,
