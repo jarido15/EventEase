@@ -8,6 +8,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
+  ScrollView,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import {useRoute, useNavigation} from '@react-navigation/native';
@@ -27,9 +28,7 @@ const PaymentMethodScreen = () => {
     supplierName,
   } = route.params;
 
-  const [selectedMethod, setSelectedMethod] = useState<'Cash' | 'GCash' | null>(
-    null,
-  );
+  const [selectedMethod, setSelectedMethod] = useState<'Cash' | 'GCash' | null>(null);
   const [gcashRefNumber, setGcashRefNumber] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
   const [loading, setLoading] = useState(false);
@@ -41,11 +40,8 @@ const PaymentMethodScreen = () => {
     }
 
     if (selectedMethod === 'GCash') {
-      if (gcashRefNumber.trim() === '') {
-        Alert.alert(
-          'Missing Reference',
-          'Please enter your GCash reference number.',
-        );
+      if (gcashRefNumber.trim().length !== 13) {
+        Alert.alert('Invalid Reference Number', 'The GCash reference number must be exactly 13 digits.');
         return;
       }
       if (amountPaid.trim() === '') {
@@ -63,16 +59,13 @@ const PaymentMethodScreen = () => {
 
       if (selectedMethod === 'GCash') {
         updateData.referenceNumber = gcashRefNumber;
-        updateData.amountPaid = parseFloat(amountPaid) || 0; // Ensure valid number
+        updateData.amountPaid = parseFloat(amountPaid) || 0;
       }
 
-      await firestore()
-        .collection('Bookings')
-        .doc(bookingId)
-        .update(updateData);
+      await firestore().collection('Bookings').doc(bookingId).update(updateData);
 
       setLoading(false);
-      Alert.alert('Payment Confirmed', 'Your booking has been confirmed.');
+      Alert.alert('Payment set', 'Your booking has been submitted. Wait for the supplier confirmation.');
       navigation.goBack();
     } catch (error) {
       console.error('Payment confirmation failed:', error);
@@ -84,109 +77,94 @@ const PaymentMethodScreen = () => {
   return (
     <View style={styles.container}>
       <View style={styles.navBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}>
-          <Image
-            source={require('../images/back.png')}
-            style={styles.backIcon}
-          />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Image source={require('../images/back.png')} style={styles.backIcon} />
         </TouchableOpacity>
         <Text style={styles.navTitle}>Select Your Payment</Text>
       </View>
 
-      <View style={styles.detailBox}>
-        <Text style={styles.label}>
-          Event: <Text style={styles.value}>{eventName}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Service: <Text style={styles.value}>{serviceName}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Date: <Text style={styles.value}>{eventDate}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Duration: <Text style={styles.value}>{eventDuration}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Supplier: <Text style={styles.value}>{supplierName}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Gcash Number: <Text style={styles.value}>{gcashNumber}</Text>
-        </Text>
-        <Text style={styles.label}>
-          Amount: <Text style={styles.amount}>₱{amount}</Text>
-        </Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.detailBox}>
+          <Text style={styles.label}>
+            Event: <Text style={styles.value}>{eventName}</Text>
+          </Text>
+          <Text style={styles.label}>
+            Service: <Text style={styles.value}>{serviceName}</Text>
+          </Text>
+          <Text style={styles.label}>
+            Date: <Text style={styles.value}>{eventDate}</Text>
+          </Text>
+          <Text style={styles.label}>
+            Duration: <Text style={styles.value}>{eventDuration}</Text>
+          </Text>
+          <Text style={styles.label}>
+            Supplier: <Text style={styles.value}>{supplierName}</Text>
+          </Text>
+          <Text style={styles.label}>
+            GCash Number: <Text style={styles.value}>{gcashNumber}</Text>
+          </Text>
+          <Text style={styles.label}>
+            Amount: <Text style={styles.amount}>₱{amount}</Text>
+          </Text>
+        </View>
 
-      <View style={styles.paymentMethodContainer}>
-        <TouchableOpacity
-          style={[
-            styles.methodButton,
-            selectedMethod === 'Cash' && styles.selected,
-          ]}
-          onPress={() => {
-            setSelectedMethod('Cash');
-            setGcashRefNumber('');
-          }}>
-          <Text style={styles.methodText}>Pay on Cash</Text>
-        </TouchableOpacity>
+        <View style={styles.paymentMethodContainer}>
+          <TouchableOpacity
+            style={[styles.methodButton, selectedMethod === 'Cash' && styles.selected]}
+            onPress={() => {
+              setSelectedMethod('Cash');
+              setGcashRefNumber('');
+            }}>
+            <Text style={styles.methodText}>Pay on Cash</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.methodButton,
-            selectedMethod === 'GCash' && styles.selected,
-          ]}
-          onPress={() => setSelectedMethod('GCash')}>
-          <Text style={styles.methodText}>Pay on GCash</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.methodButton, selectedMethod === 'GCash' && styles.selected]}
+            onPress={() => setSelectedMethod('GCash')}>
+            <Text style={styles.methodText}>Pay on GCash</Text>
+          </TouchableOpacity>
 
-        {selectedMethod === 'GCash' && (
-          <View>
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                Enter GCash Reference Number:
-              </Text>
-              <TextInput
-                placeholder="e.g. 1234567890123"
-                style={styles.input}
-                value={gcashRefNumber}
-                onChangeText={text => {
-                  const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
-                  setGcashRefNumber(filteredText);
-                }}
-                keyboardType="numeric"
-                maxLength={13}
-              />
+          {selectedMethod === 'GCash' && (
+            <View>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Enter GCash Reference Number:</Text>
+                <TextInput
+                  placeholder="e.g. 1234567890123"
+                  style={styles.input}
+                  value={gcashRefNumber}
+                  onChangeText={text => {
+                    const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
+                    setGcashRefNumber(filteredText);
+                  }}
+                  keyboardType="numeric"
+                  maxLength={13}
+                />
+                <Text style={styles.reminderText}>
+                  ⚠️ Please double-check your GCash reference number before proceeding.
+                </Text>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Enter Amount Paid:</Text>
+                <TextInput
+                  placeholder="e.g. 1000"
+                  style={styles.input}
+                  value={amountPaid}
+                  onChangeText={text => {
+                    const numericText = text.replace(/[^0-9.]/g, '');
+                    setAmountPaid(numericText);
+                  }}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
+          )}
+        </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Enter Amount Paid:</Text>
-              <TextInput
-                placeholder="e.g. 1000"
-                style={styles.input}
-                value={amountPaid}
-                onChangeText={text => {
-                  const numericText = text.replace(/[^0-9.]/g, ''); // Allow only numbers and decimal
-                  setAmountPaid(numericText);
-                }}
-                keyboardType="numeric"
-              />
-            </View>
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity
-        style={styles.confirmButton}
-        onPress={handleConfirmPayment}
-        disabled={loading}>
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.confirmText}>Confirm Payment</Text>
-        )}
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirmPayment} disabled={loading}>
+          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.confirmText}>Confirm Payment</Text>}
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 };
