@@ -26,14 +26,13 @@ const CreateEvent = ({navigation}) => {
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState(new Date());
   const [eventTime, setEventTime] = useState(new Date());
-  const [venue, setVenue] = useState('');
   const [venueType, setVenueType] = useState('Outdoor');
   const [selectedServices, setSelectedServices] = useState([]);
-  const [eventImage, setEventImage] = useState(null); // State to store the image
+  const [eventImage, setEventImage] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [loading, setLoading] = useState(false); // Loading state
-  const [eventPlace, seteventPlace] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [eventPlace, setEventPlace] = useState('');
 
   const services = [
     {label: 'Food & Beverage', value: 'food'},
@@ -48,28 +47,32 @@ const CreateEvent = ({navigation}) => {
 
   const toggleService = service => {
     setSelectedServices(prev =>
-      prev.includes(service)
-        ? prev.filter(s => s !== service)
-        : [...prev, service],
+      prev.includes(service) ? prev.filter(s => s !== service) : [...prev, service],
     );
   };
 
-  const formatDate = date => date.toISOString().split('T')[0]; // YYYY-MM-DD
+  // ✅ Fix: Adjusts for timezone offset to ensure correct date selection
+  const formatDate = date => {
+    const adjustedDate = new Date(date);
+    adjustedDate.setMinutes(adjustedDate.getMinutes() - adjustedDate.getTimezoneOffset());
+    return adjustedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  };
+
   const formatTime = time =>
     time.toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
-    }); // HH:MM AM/PM
+    });
 
   const handleCreateEvent = async () => {
     if (!eventName || !eventPlace) {
       Alert.alert('Error', 'Please fill in all required fields.');
-      setLoading(false); // Ensure loading stops when validation fails
+      setLoading(false);
       return;
     }
 
-    setLoading(true); // Start loading when submission begins
+    setLoading(true);
 
     try {
       const user = auth().currentUser;
@@ -107,7 +110,7 @@ const CreateEvent = ({navigation}) => {
     } catch (error) {
       Alert.alert('Error', error.message);
     } finally {
-      setLoading(false); // Stop loading regardless of success or failure
+      setLoading(false);
     }
   };
 
@@ -118,42 +121,26 @@ const CreateEvent = ({navigation}) => {
       } else if (response.errorCode) {
         Alert.alert('Error', response.errorMessage);
       } else {
-        setEventImage(response.assets[0]); // Store the selected image
+        setEventImage(response.assets[0]);
       }
     });
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{flex: 1}}>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}>
-            <Image
-              source={require('../images/back.png')}
-              style={styles.backButton}
-            />
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Image source={require('../images/back.png')} style={styles.backButton} />
           </TouchableOpacity>
 
           <Text style={styles.header}>Create Event</Text>
 
-          {/* Event Name */}
-          <TextInput
-            style={styles.input}
-            placeholder="Event Name"
-            value={eventName}
-            placeholderTextColor={'#888'}
-            onChangeText={setEventName}
-          />
+          <TextInput style={styles.input} placeholder="Event Name" value={eventName}  placeholderTextColor="#888" onChangeText={setEventName} />
 
-          {/* Date Picker */}
+          {/* ✅ Date Picker */}
           <Text style={styles.label}>Event Date</Text>
-          <TouchableOpacity
-            style={styles.input}
-            onPress={() => setShowDatePicker(true)}>
+          <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
             <Text>{formatDate(eventDate)}</Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -163,16 +150,18 @@ const CreateEvent = ({navigation}) => {
               display="default"
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
-                if (selectedDate) setEventDate(selectedDate);
+                if (selectedDate) {
+                  const adjustedDate = new Date(selectedDate);
+                  adjustedDate.setMinutes(adjustedDate.getMinutes() - adjustedDate.getTimezoneOffset());
+                  setEventDate(adjustedDate);
+                }
               }}
             />
           )}
 
-          {/* Time Picker */}
+          {/* ✅ Time Picker */}
           <Text style={styles.label}>Event Time</Text>
-          <TouchableOpacity
-            style={styles.input}
-            onPress={() => setShowTimePicker(true)}>
+          <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
             <Text>{formatTime(eventTime)}</Text>
           </TouchableOpacity>
           {showTimePicker && (
@@ -187,34 +176,20 @@ const CreateEvent = ({navigation}) => {
             />
           )}
 
-          {/* Venue */}
-          <TextInput
-            style={styles.input}
-            placeholder="Venue"
-            value={eventPlace}
-            placeholderTextColor={'#888'}
-            onChangeText={seteventPlace}
-          />
+          <TextInput style={styles.input} placeholder="Event Place" value={eventPlace} onChangeText={setEventPlace}  placeholderTextColor="#888" />
 
-          {/* Venue Type Dropdown */}
+          {/* ✅ Venue Type Picker */}
           <Text style={styles.label}>Venue Type</Text>
           <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={venueType}
-              onValueChange={itemValue => setVenueType(itemValue)}
-              style={styles.picker}>
+            <Picker selectedValue={venueType} onValueChange={itemValue => setVenueType(itemValue)} style={styles.picker}>
               <Picker.Item label="Outdoor" value="Outdoor" />
               <Picker.Item label="Indoor" value="Indoor" />
             </Picker>
           </View>
 
-          {/* List of Services */}
           <Text style={styles.label}>Select Services</Text>
           {services.map(service => (
-            <TouchableOpacity
-              key={service.value}
-              style={styles.checkboxContainer}
-              onPress={() => toggleService(service.value)}>
+            <TouchableOpacity key={service.value} style={styles.checkboxContainer} onPress={() => toggleService(service.value)}>
               <Image
                 source={
                   selectedServices.includes(service.value)
@@ -227,25 +202,14 @@ const CreateEvent = ({navigation}) => {
             </TouchableOpacity>
           ))}
 
-          {/* Image Upload */}
           <Text style={styles.label}>Event Image</Text>
           <TouchableOpacity style={styles.smallButton} onPress={chooseImage}>
             <Text style={styles.buttonText}>Choose Image</Text>
           </TouchableOpacity>
-          {eventImage && (
-            <Image source={{uri: eventImage.uri}} style={styles.eventImage} />
-          )}
+          {eventImage && <Image source={{uri: eventImage.uri}} style={styles.eventImage} />}
 
-          {/* Submit Button */}
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleCreateEvent}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color="black" />
-            ) : (
-              <Text style={styles.buttonText}>Create Event</Text>
-            )}
+          <TouchableOpacity style={styles.button} onPress={handleCreateEvent} disabled={loading}>
+            {loading ? <ActivityIndicator size="small" color="black" /> : <Text style={styles.buttonText}>Create Event</Text>}
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
@@ -302,6 +266,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: '100%',
+    color: '#888',
   },
   checkboxContainer: {
     flexDirection: 'row',
