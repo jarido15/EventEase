@@ -561,17 +561,19 @@ const BookingsScreen = () => {
               placeholderTextColor={'#888'}
               editable={false} // Disable editing for the gcashNumber
             />
-            <TextInput
-              placeholder="e.g. 1234567890123"
-              style={styles.input}
-              value={gcashNumber}
-              onChangeText={text => {
-                const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
-                setGcashNumber(filteredText);
-              }}
-              keyboardType="numeric"
-              maxLength={13}
-            />
+                    <TextInput
+            placeholder="Enter Reference Number"
+            placeholderTextColor={'#888'}
+            style={[styles.input, { color: '#888' }]} // Added text color
+            value={referenceNumber}
+            onChangeText={text => {
+              const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
+              setGcashNumber(filteredText);
+            }}
+            keyboardType="numeric"
+            maxLength={13}
+          />
+
             <TextInput
               style={styles.input}
               placeholder="Enter Amount"
@@ -754,6 +756,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingLeft: 10,
     borderRadius: 5,
+    color: '#888'
   },
   modalActions: {
     flexDirection: 'row',
