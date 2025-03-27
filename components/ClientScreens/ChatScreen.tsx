@@ -8,7 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 
 const Tab = createMaterialTopTabNavigator();
 
-// 🔹 Chat List Component with Pull-to-Refresh
+// 🔹 Chat List Component
 const ChatList = ({ users, searchQuery, navigation, loading, refreshing, onRefresh }) => {
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -40,7 +40,9 @@ const ChatList = ({ users, searchQuery, navigation, loading, refreshing, onRefre
               {item.lastMessage || 'No messages yet'}
             </Text>
           </View>
-          <Text style={styles.time}>{item.time || ''}</Text>
+          <Text style={styles.time}>
+            {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : ''}
+          </Text>
         </TouchableOpacity>
       )}
     />
@@ -52,9 +54,9 @@ const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  
+
   const currentUser = auth().currentUser;
   const currentUserID = currentUser ? currentUser.uid : null;
 
@@ -63,55 +65,96 @@ const ChatScreen = () => {
       console.log('User is not logged in.');
       return;
     }
-    fetchUsersWithMessages();
+
+    const unsubscribe = fetchUsersWithMessages();
+
+    return () => unsubscribe && unsubscribe();
   }, [currentUserID]);
 
-  // 🔄 Function to fetch users with messages
-  const fetchUsersWithMessages = async () => {
+  // 🔄 Function to fetch users and listen for latest messages
+  const fetchUsersWithMessages = () => {
     if (!currentUserID) return;
+
     setLoading(true);
 
-    try {
-      const [suppliersSnapshot, plannersSnapshot] = await Promise.all([
-        firestore().collection('Supplier').get(),
-        firestore().collection('Planner').get(),
-      ]);
+    const unsubscribeSuppliers = firestore()
+      .collection('Supplier')
+      .onSnapshot(snapshot => {
+        const suppliers = snapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() }));
+        updateChatUsers(suppliers);
+      });
 
-      const allUsers = [
-        ...suppliersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() })),
-        ...plannersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() })),
-      ];
+    const unsubscribePlanners = firestore()
+      .collection('Planner')
+      .onSnapshot(snapshot => {
+        const planners = snapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() }));
+        updateChatUsers(planners);
+      });
 
-      const usersWithMessages = [];
+    return () => {
+      unsubscribeSuppliers();
+      unsubscribePlanners();
+    };
+  };
 
-      for (const user of allUsers) {
-        const chatDocID = `${user.id}_${currentUserID}`;
-        const reverseChatDocID = `${currentUserID}_${user.id}`;
+  // 🔄 Update chat users with latest message and sort by timestamp
+  const updateChatUsers = (newUsers) => {
+    const allUsers = [...newUsers];
 
-        const chatRef1 = firestore().collection('Chats').doc(chatDocID).collection('Messages');
-        const chatRef2 = firestore().collection('Chats').doc(reverseChatDocID).collection('Messages');
+    allUsers.forEach(user => {
+      const chatDocID = `${user.id}_${currentUserID}`;
+      const reverseChatDocID = `${currentUserID}_${user.id}`;
 
-        const [messagesSnapshot1, messagesSnapshot2] = await Promise.all([
-          chatRef1.limit(1).get(),
-          chatRef2.limit(1).get(),
-        ]);
+      const chatRef1 = firestore().collection('Chats').doc(chatDocID).collection('Messages');
+      const chatRef2 = firestore().collection('Chats').doc(reverseChatDocID).collection('Messages');
 
-        if (!messagesSnapshot1.empty || !messagesSnapshot2.empty) {
-          usersWithMessages.push(user);
-        }
-      }
+      const unsubscribeMessages = chatRef1
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .onSnapshot(snapshot1 => {
+          processLatestMessage(snapshot1, user);
+        });
 
-      setChatUsers(usersWithMessages);
-    } catch (error) {
-      console.error('Error fetching users with messages:', error);
-    }
+      const unsubscribeMessagesReverse = chatRef2
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .onSnapshot(snapshot2 => {
+          processLatestMessage(snapshot2, user);
+        });
+
+      return () => {
+        unsubscribeMessages();
+        unsubscribeMessagesReverse();
+      };
+    });
+
     setLoading(false);
   };
 
+  // 🔄 Process the latest message for a user (Fix: Create a new object)
+  const processLatestMessage = (snapshot, user) => {
+    if (!snapshot.empty) {
+      const latestMessageDoc = snapshot.docs[0].data();
+      
+      // Create a new user object instead of modifying the original one
+      const updatedUser = {
+        ...user,
+        lastMessage: latestMessageDoc.text || 'No message',
+        timestamp: latestMessageDoc.timestamp?.toMillis() || 0,
+      };
+
+      setChatUsers(prevUsers => {
+        // Remove the old entry if exists, then add the updated user
+        const updatedUsers = prevUsers.filter(u => u.id !== updatedUser.id);
+        return [...updatedUsers, updatedUser].sort((a, b) => b.timestamp - a.timestamp);
+      });
+    }
+  };
+
   // 🔄 Pull-to-refresh handler
-  const onRefresh = useCallback(async () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    await fetchUsersWithMessages();
+    fetchUsersWithMessages();
     setRefreshing(false);
   }, []);
 
