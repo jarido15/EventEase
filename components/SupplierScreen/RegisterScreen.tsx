@@ -49,7 +49,7 @@ const SupplierRegister = ({ navigation }) => {
         createdAt: firestore.FieldValue.serverTimestamp(),
       });
 
-      Alert.alert('Success', 'Account created successfully!');
+      Alert.alert('Success', 'Proceeding......');
       navigation.navigate('SupplierRegister2');
     } catch (error) {
       Alert.alert('Error', error.message);

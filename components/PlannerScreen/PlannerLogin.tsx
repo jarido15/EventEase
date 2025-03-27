@@ -1,4 +1,4 @@
-import React, { useState, useCallback  } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -21,8 +22,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PlannerLogin = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // State for loading
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -30,20 +32,31 @@ const PlannerLogin = ({ navigation }) => {
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
 
     try {
-      const userCredential = await auth().signInWithEmailAndPassword(email, password);
-      const user = userCredential.user;
-      await AsyncStorage.setItem('userType', 'Planner');
+      const plannerQuery = await firestore()
+        .collection('Planner')
+        .where('email', '==', email)
+        .get();
 
-      const plannerDoc = await firestore().collection('Planner').doc(user.uid).get();
-      if (!plannerDoc.exists) {
-        await auth().signOut();
-        Alert.alert('Error', 'You are not authorized to log in as a planner');
+      if (plannerQuery.empty) {
+        Alert.alert('Error', 'This email is not registered as a planner.');
+        setLoading(false);
         return;
       }
 
+      const plannerData = plannerQuery.docs[0].data();
+      const status = plannerData.accountStatus;
+
+      if (status === 'pending') {
+        setModalVisible(true);
+        setLoading(false);
+        return;
+      }
+
+      await auth().signInWithEmailAndPassword(email, password);
+      await AsyncStorage.setItem('userType', 'Planner');
       Alert.alert('Success', `Welcome ${email}!`);
       navigation.navigate('Plannermain');
     } catch (error) {
@@ -55,27 +68,17 @@ const PlannerLogin = ({ navigation }) => {
         Alert.alert('Error', error.message);
       }
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
-  const goToRegister = useCallback(() => {
-    navigation.navigate('PlannerRegister');
-  }, [navigation]);
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-  
-
-        <TouchableOpacity 
-  onPress={() => navigation.replace('LoginOption')} 
-  style={styles.backButton} // Updated style
->
-  <Image source={require('../images/back.png')} style={styles.arrow} />
-</TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.replace('LoginOption')} style={styles.backButton}>
+            <Image source={require('../images/back.png')} style={styles.arrow} />
+          </TouchableOpacity>
 
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
@@ -91,29 +94,24 @@ const PlannerLogin = ({ navigation }) => {
           />
 
           <View style={styles.passwordContainer}>
-                      <TextInput
-                        style={styles.passwordInput}
-                        placeholder="Enter your password"
-                        placeholderTextColor="#888"
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry={!showPassword}
-                      />
-                      <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                        <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
-                      </TouchableOpacity>
-                    </View>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter your password"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
+            {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
           </TouchableOpacity>
 
-
-  <TouchableOpacity onPress={() => navigation.navigate('PlannerRegister')}>
+          <TouchableOpacity onPress={() => navigation.navigate('PlannerRegister')}>
             <Text style={styles.forgotPasswordTextSignup}>Don't have an account? Signup!</Text>
           </TouchableOpacity>
 
@@ -121,10 +119,23 @@ const PlannerLogin = ({ navigation }) => {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
- 
+      </TouchableWithoutFeedback>
+
+      <Modal animationType="slide" transparent={true} visible={modalVisible}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Account Pending</Text>
+            <Text style={styles.modalText}>Your account is awaiting approval. You will receive an update once it's activated.</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
@@ -143,6 +154,7 @@ const styles = StyleSheet.create({
     bottom: '15%',
     right: '22%',
   },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
   backButton: {
     position: 'absolute', 
     top: 40, 
@@ -237,6 +249,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 10,
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    width: '80%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    backgroundColor: '#5392DD',
+    padding: 10,
+    borderRadius: 5,
+    width: '50%',
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
 });
 
 export default PlannerLogin;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
-  KeyboardAvoidingView, Platform, ScrollView, Image 
+  KeyboardAvoidingView, Platform, ScrollView, Image,  Modal,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -10,12 +10,18 @@ const SupplierRegister2 = ({ navigation }) => {
   const [BusinessName, setBusinessName] = useState('');
   const [Location, setLocation] = useState('');
   const [ContactNumber, setContactNumber] = useState('');
+      const [agreedToTerms, setAgreedToTerms] = useState(false);
+        const [modalVisible, setModalVisible] = useState(false);
 
   const handleContinue = async () => {
     if (!BusinessName || !Location || !ContactNumber) {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
+        if (!agreedToTerms) {
+              Alert.alert('Error', 'You must agree to the Terms and Conditions');
+              return;
+            }
 
     if (ContactNumber.length !== 11) {
       Alert.alert('Error', 'Contact number must be 11 digits');
@@ -62,9 +68,38 @@ const SupplierRegister2 = ({ navigation }) => {
           keyboardType="number-pad" 
           maxLength={11} // Limit input to 11 digits
         />
+         <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAgreedToTerms(!agreedToTerms)}>
+                                                        <Image source={agreedToTerms ? require('../images/checkedbox.png') : require('../images/Uncheckedbox.png')} style={styles.checkbox} />
+                                                        <TouchableOpacity onPress={() => setModalVisible(true)}>
+                                                          <Text style={styles.termsText}>I agree to the Terms and Conditions</Text>
+                                                        </TouchableOpacity>
+                                                      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleContinue}>
-          <Text style={styles.buttonText}>Continue</Text>
+                                                       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+                                                                <View style={styles.modalOverlay}>
+                                                                  <View style={styles.modalContainer}>
+                                                                    
+                                                                    <Text style={styles.modalTitle}>Terms and Conditions</Text>
+                                                                    
+                                                                    <ScrollView style={styles.modalScroll}>
+                                                                      <Text style={styles.modalText}>
+                                                                        • Must use a valid GCash account for payments.{'\n\n'}
+                                                                        • Initial payment can be made via GCash or in-person cash.{'\n\n'}
+                                                                        • If a client cancels a booking, the supplier/planner must refund 100% of the initial payment unless a non-refundable deposit applies.{'\n\n'}
+                                                                        • Clients should verify suppliers before booking and request contracts if needed.
+                                                                      </Text>
+                                                                    </ScrollView>
+                                                              
+                                                                    <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
+                                                                      <Text style={styles.modalButtonText}>Close</Text>
+                                                                    </TouchableOpacity>
+                                                              
+                                                                  </View>
+                                                                </View>
+                                                              </Modal>
+
+        <TouchableOpacity style={styles.button} disabled={!agreedToTerms} onPress={handleContinue}>
+          <Text style={styles.buttonText}>Create Account</Text>
         </TouchableOpacity>
 
         <Text style={styles.signInText}>
@@ -87,6 +122,71 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   signInText: { marginTop: 20, color: '#666' },
   signInLink: { color: '#007bff', fontWeight: 'bold' },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    width: '85%',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    marginRight: 10,
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#5392DD',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 200,
+    marginBottom: 15,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'left',
+    lineHeight: 20,
+  },
+  modalButton: {
+    backgroundColor: '#5392DD',
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default SupplierRegister2;

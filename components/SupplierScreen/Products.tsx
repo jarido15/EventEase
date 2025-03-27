@@ -57,7 +57,7 @@ const Products = () => {
 
   // Function to upload service details to Firestore
   const addService = async () => {
-    if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber || !selectedLocation) {
+    if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber ) {
       Alert.alert('Error', 'All fields are required.');
       return;
     }
@@ -83,7 +83,6 @@ const Products = () => {
           description,
           gcashNumber,
           gcashName,
-          location: selectedLocation, // ✅ Store location
           imageUrl,
           status: "Available",
           createdAt: firestore.FieldValue.serverTimestamp(),
@@ -93,7 +92,6 @@ const Products = () => {
       setServiceName('');
       setServicePrice('');
       setDescription('');
-      setSelectedLocation('');
       setImageUri(null);
     } catch (error) {
       console.error('Error adding service:', error);
@@ -126,22 +124,6 @@ const Products = () => {
 
             <Text style={styles.label}>Service Name:</Text>
             <TextInput style={styles.input} placeholder="Enter service name" value={serviceName} onChangeText={setServiceName} />
-            <Text style={styles.label}>Location:</Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={selectedLocation}
-                onValueChange={(itemValue) => setSelectedLocation(itemValue)}
-                style={styles.picker}
-              >
-                <Picker.Item label="Select Location" value="" />
-                <Picker.Item label="Calapan" value="Calapan" />
-                <Picker.Item label="Pinamalayan" value="Pinamalayan" />
-                <Picker.Item label="Naujan" value="Naujan" />
-                <Picker.Item label="Victoria" value="Victoria" />
-                <Picker.Item label="Socorro" value="Socorro" />
-                <Picker.Item label="Gloria" value="Gloria" />
-              </Picker>
-            </View>
 
             <Text style={styles.label}>Service Price:</Text>
             <TextInput style={styles.input} placeholder="Enter Service price" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />

@@ -13,7 +13,7 @@ import { createMaterialTopTabNavigator } from '@react-navigation/material-top-ta
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import React, { useState, useEffect } from 'react';
-
+import { NavigationContainer } from '@react-navigation/native';
 // 🔹 Booking Card Component
 const BookingCard = ({ name, date }: { name: string; date: string }) => (
   <View style={styles.card}>
@@ -645,22 +645,18 @@ const CancelledScreen = () => {
 
 const Tab = createMaterialTopTabNavigator();
 
-// 🔹 Main Booking Screen
 const SupplierBookingScreen = () => {
   return (
     <View style={styles.container}>
-      {/* 🔹 Title */}
       <Text style={styles.title}>Booking</Text>
-
       <Tab.Navigator
-        initialRouteName="Pending"
         screenOptions={{
-          lazy: false,
-          tabBarIndicatorStyle: {
-            backgroundColor: 'blue', // Debug: Force it to be visible
-            height: 3,
-            width: '25%', // Fix potential width issues
-          },
+          tabBarStyle: { backgroundColor: '#fff' },
+          tabBarLabelStyle: { fontSize: 14 },
+          tabBarIndicatorStyle: { height: 1 }, // Removes active indicator
+          swipeEnabled: true, // Ensures smooth swiping
+          lazy: true, // Prevents unnecessary re-renders
+          animationEnabled: false, // Fixes tab indicator bug when tapping
         }}
       >
         <Tab.Screen name="Pending" component={PendingScreen} />

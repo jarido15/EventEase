@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { 
+  Modal,
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
   KeyboardAvoidingView, Platform, ScrollView, Image, ActivityIndicator 
 } from 'react-native';
@@ -15,6 +16,8 @@ const PlannerRegister = ({ navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(false);
+      const [modalVisible, setModalVisible] = useState(false);
 
   const isValidEmail = (email) => {
     const emailParts = email.split('@');
@@ -29,6 +32,10 @@ const PlannerRegister = ({ navigation }) => {
       Alert.alert('Error', 'Please fill all fields');
       return;
     }
+      if (!agreedToTerms) {
+          Alert.alert('Error', 'You must agree to the Terms and Conditions');
+          return;
+        }
     if (!isValidEmail(email)) {
       Alert.alert('Error', 'Please enter a valid email with an accepted domain');
       return;
@@ -110,10 +117,39 @@ const PlannerRegister = ({ navigation }) => {
                                         <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
                                       </TouchableOpacity>
                                     </View>
+                                       {/* Terms and Conditions Checkbox */}
+                                              <TouchableOpacity style={styles.checkboxContainer} onPress={() => setAgreedToTerms(!agreedToTerms)}>
+                                                <Image source={agreedToTerms ? require('../images/checkedbox.png') : require('../images/Uncheckedbox.png')} style={styles.checkbox} />
+                                                <TouchableOpacity onPress={() => setModalVisible(true)}>
+                                                  <Text style={styles.termsText}>I agree to the Terms and Conditions</Text>
+                                                </TouchableOpacity>
+                                              </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleContinue} disabled={loading}>
-          {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Continue</Text>}
+        <TouchableOpacity style={styles.button} onPress={handleContinue} disabled={!agreedToTerms ||loading}>
+          {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Create Account</Text>}
         </TouchableOpacity>
+        <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              
+              <Text style={styles.modalTitle}>Terms and Conditions</Text>
+              
+              <ScrollView style={styles.modalScroll}>
+                <Text style={styles.modalText}>
+                  • Must use a valid GCash account for payments.{'\n\n'}
+                  • Initial payment can be made via GCash or in-person cash.{'\n\n'}
+                  • If a client cancels a booking, the supplier/planner must refund 100% of the initial payment unless a non-refundable deposit applies.{'\n\n'}
+                  • Clients should verify suppliers before booking and request contracts if needed.
+                </Text>
+              </ScrollView>
+        
+              <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
+                <Text style={styles.modalButtonText}>Close</Text>
+              </TouchableOpacity>
+        
+            </View>
+          </View>
+        </Modal>
 
         <Text style={styles.signInText}>
           Already have an account?{' '}
@@ -132,7 +168,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: '#666', marginBottom: 20, textAlign: 'center' },
   input: { width: '100%', height: 50, borderColor: '#ccc', borderWidth: 1, borderRadius: 20, paddingHorizontal: 15, marginBottom: 15, backgroundColor: '#fff' },
   button: { width: '100%', height: 50, backgroundColor: '#007bff', justifyContent: 'center', alignItems: 'center', borderRadius: 10, marginTop: 10 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   signInText: { marginTop: 20, color: '#666' },
   signInLink: { color: '#007bff', fontWeight: 'bold' },
   passwordContainer: {
@@ -157,6 +193,71 @@ const styles = StyleSheet.create({
     color: '#5392DD',
     fontWeight: 'bold',
     paddingHorizontal: 10,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    width: '85%',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    marginRight: 10,
+  },
+  termsText: {
+    fontSize: 14,
+    color: '#5392DD',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 200,
+    marginBottom: 15,
+  },
+  modalText: {
+    fontSize: 14,
+    color: '#555',
+    textAlign: 'left',
+    lineHeight: 20,
+  },
+  modalButton: {
+    backgroundColor: '#5392DD',
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderRadius: 10,
+    alignSelf: 'center',
+    marginTop: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

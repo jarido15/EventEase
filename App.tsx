@@ -78,8 +78,9 @@ function MainBottomTabs() {
   const SupplierStack = createStackNavigator();
   return (
     <SupplierStack.Navigator screenOptions={{headerShown: false}}>
-      <SupplierStack.Screen name="main" component={BottomTabs} />
+    
       <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
+      <SupplierStack.Screen name="main" component={BottomTabs} />
       <Stack.Screen
         name="SupplierChatScreen"
         component={SupplierChatScreen}
