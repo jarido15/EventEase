@@ -26,6 +26,7 @@ const HomeScreen = ({ navigation }) => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [user, setUser] = useState(null);
 
 
   const fetchUserData = async () => {
@@ -60,6 +61,13 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -182,10 +190,11 @@ const HomeScreen = ({ navigation }) => {
       const minutes = selectedTime.getMinutes().toString().padStart(2, '0');
       setSelectedEvent((prevEvent) => ({
         ...prevEvent,
-        eventTime: `${hours}:${minutes}`, // Format: HH:MM
+        eventTime: `${hours}:${minutes}`, // Format: HH:MM (24-hour)
       }));
     }
   };
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
@@ -218,7 +227,11 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.quickAccessText}>Browse Events</Text>
             </TouchableOpacity>
           </View>
-
+          {!user && (
+  <TouchableOpacity style={styles.loginButton} onPress={() => navigation.navigate('ClientLogin')}>
+    <Text style={styles.loginButtonText}>Login to Your Account</Text>
+  </TouchableOpacity>
+)}
           {/* Events List with FlatList */}
           <Text style={styles.sectionTitle}>Your Upcoming Events</Text>
           {events.length > 0 ? (
@@ -301,13 +314,15 @@ const HomeScreen = ({ navigation }) => {
         <Text style={styles.dateTimeText}>{selectedEvent?.eventTime || '⏰ Select Time'}</Text>
       </TouchableOpacity>
       {showTimePicker && (
-        <DateTimePicker
-          mode="time"
-          value={selectedEvent?.eventTime ? new Date() : new Date()} // Default to current time
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
+  <DateTimePicker
+    mode="time"
+    value={selectedEvent?.eventTime ? new Date() : new Date()} // Default to current time
+    display="default"
+    is24Hour={true} // Ensures 24-hour format
+    onChange={handleTimeChange}
+  />
+)}
+
 
       {/* Action Buttons */}
       <View style={styles.modalButtons}>
@@ -555,6 +570,20 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  loginButton: {
+    backgroundColor: '#FF7043',
+    paddingVertical: 16,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  loginButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  
 });
 
 export default HomeScreen;
