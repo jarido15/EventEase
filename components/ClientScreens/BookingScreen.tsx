@@ -425,7 +425,7 @@ const BookingsScreen = () => {
 
               Alert.alert(
                 'Success',
-                'Booking has been cancelled and the service date updated.',
+                'Booking has been cancelled and the service date updated. Your Downpayment will be return within 72 hours, Thank You.',
               );
             } catch (error) {
               console.error('Error cancelling booking:', error);
