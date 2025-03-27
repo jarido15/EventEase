@@ -57,7 +57,7 @@ const Products = () => {
 
   // Function to upload service details to Firestore
   const addService = async () => {
-    if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber || !selectedLocation) {
+    if (!serviceName || !servicePrice || !description || !gcashName || !gcashNumber ) {
       Alert.alert('Error', 'All fields are required.');
       return;
     }
@@ -83,7 +83,6 @@ const Products = () => {
           description,
           gcashNumber,
           gcashName,
-          location: selectedLocation, // ✅ Store location
           imageUrl,
           status: "Available",
           createdAt: firestore.FieldValue.serverTimestamp(),
@@ -93,7 +92,6 @@ const Products = () => {
       setServiceName('');
       setServicePrice('');
       setDescription('');
-      setSelectedLocation('');
       setImageUri(null);
     } catch (error) {
       console.error('Error adding service:', error);
@@ -125,6 +123,9 @@ const Products = () => {
             </TouchableOpacity>
 
             <Text style={styles.label}>Service Name:</Text>
+
+            <TextInput style={styles.input} placeholder="Enter service name" value={serviceName} onChangeText={setServiceName} />
+
             <TextInput style={styles.input} placeholder="Enter service name" value={serviceName}   placeholderTextColor="#888" onChangeText={setServiceName} />
             <Text style={styles.label}>Location:</Text>
             <View style={styles.pickerContainer}>
@@ -142,6 +143,7 @@ const Products = () => {
                 <Picker.Item label="Gloria" value="Gloria" />
               </Picker>
             </View>
+
 
             <Text style={styles.label}>Service Price:</Text>
             <TextInput style={styles.input} placeholder="Enter Service price"   placeholderTextColor="#888" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />

@@ -12,7 +12,8 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
@@ -23,6 +24,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -33,13 +35,22 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const supplierDoc = await firestore()
+      const supplierQuery = await firestore()
         .collection('Supplier')
         .where('email', '==', email)
         .get();
 
-      if (supplierDoc.empty) {
+      if (supplierQuery.empty) {
         Alert.alert('Error', 'This email is not registered as a supplier.');
+        setLoading(false);
+        return;
+      }
+
+      const supplierData = supplierQuery.docs[0].data();
+      const status = supplierData.accountStatus; // Get account status
+
+      if (status === 'pending') {
+        setModalVisible(true); // Show modal for pending accounts
         setLoading(false);
         return;
       }
@@ -65,16 +76,11 @@ const LoginScreen = ({ navigation }) => {
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-    
-          <TouchableOpacity 
-  onPress={() => navigation.replace('LoginOption')} 
-  style={styles.backButton} // Updated style
->
-  <Image source={require('../images/back.png')} style={styles.arrow} />
-</TouchableOpacity>
+          {/* Back Button */}
+          <TouchableOpacity onPress={() => navigation.replace('LoginOption')} style={styles.backButton}>
+            <Image source={require('../images/back.png')} style={styles.arrow} />
+          </TouchableOpacity>
 
-
-          
           <Text style={styles.title}>Your Event Planning Journey Starts Here!</Text>
           <Text style={styles.subtitle}>Your Event Planning Journey Starts Here!</Text>
 
@@ -88,95 +94,79 @@ const LoginScreen = ({ navigation }) => {
             autoCapitalize="none"
           />
 
-         
-                   <View style={styles.passwordContainer}>
-                               <TextInput
-                                 style={styles.passwordInput}
-                                 placeholder="Enter your password"
-                                 placeholderTextColor="#888"
-                                 value={password}
-                                 onChangeText={setPassword}
-                                 secureTextEntry={!showPassword}
-                               />
-                               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                                 <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
-                               </TouchableOpacity>
-                             </View>
+          {/* Password Input with Toggle */}
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter your password"
+              placeholderTextColor="#888"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Text style={styles.toggle}>{showPassword ? 'Hide' : 'Show'}</Text>
+            </TouchableOpacity>
+          </View>
 
+          {/* Login Button */}
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Login</Text>
-            )}
+            {loading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Login</Text>}
           </TouchableOpacity>
 
- <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
+          {/* Signup and Forgot Password */}
+          <TouchableOpacity onPress={() => navigation.navigate('SupplierRegister')}>
             <Text style={styles.forgotPasswordTextSignup}>Don't have an account? Signup!</Text>
           </TouchableOpacity>
-       
 
           <TouchableOpacity onPress={() => Alert.alert('Forgot Password', 'Reset link sent!')}>
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
         </ScrollView>
       </TouchableWithoutFeedback>
+
+      {/* Modal for Pending Accounts */}
+      <Modal animationType="slide" transparent={true} visible={modalVisible}>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Account Pending</Text>
+            <Text style={styles.modalText}>
+              Your account is awaiting approval. You will receive an update once it's activated.
+            </Text>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setModalVisible(false)}>
+              <Text style={styles.modalButtonText}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8f9fa' },
   scrollContainer: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 },
-  eclipse: { width: 230, height: 240, bottom: '15%', right: '22%' },
-  backButton: {
-    position: 'absolute', 
-    top: 40, 
-    left: 20, 
-    zIndex: 10, // Ensures it's on top
-  },
-  arrow: {
-    width: 40,
-    height: 36,
-    tintColor: 'black', // Optional: Ensures visibility
-  },
-  forgotPasswordTextSignup: {
-    color: 'black',
-    marginTop: 15,
-    fontSize: 14,
-  },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#333', textAlign: 'center', bottom: '15%', paddingTop: 100 },
-  subtitle: { fontSize: 15, fontWeight: 'semibold', marginBottom: 20, color: '#333', textAlign: 'center', bottom: '15%' },
-  input: { width: '90%', padding: 15, borderWidth: 1, borderColor: '#ccc', borderRadius: 20, backgroundColor: '#fff', marginBottom: 15, bottom: '12%' },
-  button: { backgroundColor: '#5392DD', padding: 15, borderRadius: 25, width: '90%', alignItems: 'center', top: '-5%' },
+  backButton: { position: 'absolute', top: 40, left: 20, zIndex: 10 },
+  arrow: { width: 40, height: 36, tintColor: 'black' },
+  forgotPasswordTextSignup: { color: 'black', marginTop: 15, fontSize: 14 },
+  title: { fontSize: 20, fontWeight: 'bold', color: '#333', textAlign: 'center', marginBottom: 10 },
+  subtitle: { fontSize: 15, fontWeight: 'semibold', marginBottom: 20, color: '#333', textAlign: 'center' },
+  input: { width: '90%', padding: 15, borderWidth: 1, borderColor: '#ccc', borderRadius: 20, backgroundColor: '#fff', marginBottom: 15 },
+  button: { backgroundColor: '#5392DD', padding: 15, borderRadius: 25, width: '90%', alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-  registerText: { color: '#000', top: '220%', right: '8%' },
-  register: { color: '#5392DD', top: '170%', left: '35%' },
   forgotPassword: { color: '#5392DD', marginTop: 15, textAlign: 'center', fontSize: 14 },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '90%',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    marginBottom: 15,
-    bottom: 80,
-    paddingRight: 15,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 15,
-    borderTopLeftRadius: 20,
-    borderBottomLeftRadius: 20,
-    color: '#000',
-  },
-  toggle: {
-    color: '#5392DD',
-    fontWeight: 'bold',
-    paddingHorizontal: 10,
-  },
+  passwordContainer: { flexDirection: 'row', alignItems: 'center', width: '90%', borderWidth: 1, borderColor: '#ccc', borderRadius: 20, backgroundColor: '#fff', marginBottom: 15, paddingRight: 15 },
+  passwordInput: { flex: 1, padding: 15, color: '#000' },
+  toggle: { color: '#5392DD', fontWeight: 'bold', paddingHorizontal: 10 },
+
+  // Modal Styles
+  modalContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+  modalContent: { width: '80%', backgroundColor: '#fff', padding: 20, borderRadius: 15, alignItems: 'center' },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
+  modalText: { fontSize: 16, textAlign: 'center', marginBottom: 20 },
+  modalButton: { backgroundColor: '#5392DD', padding: 10, borderRadius: 10, width: '60%', alignItems: 'center' },
+  modalButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
 
 export default LoginScreen;

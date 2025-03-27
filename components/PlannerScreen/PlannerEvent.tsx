@@ -83,9 +83,7 @@ const PlannerEvent = ({ navigation }) => {
         .collection('PlannerServices')
         .add({
           serviceName,
-          venue,
           servicePrice,
-          venueType,
           description,
           selectedServices,
           imageUrl: uploadedImageUrl,
@@ -129,9 +127,10 @@ const PlannerEvent = ({ navigation }) => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.header}>Create Event</Text>
+          <Text style={styles.header}>Create Service</Text>
 
           {/* Event Name */}
+          <Text style={styles.label}>Event Name</Text>
           <TextInput
             style={styles.input}
             placeholder="Event Name"
@@ -141,13 +140,7 @@ const PlannerEvent = ({ navigation }) => {
           />
 
 
-            <TextInput
-            style={styles.input}
-            placeholder="Venue"
-            value={venue}
-            placeholderTextColor={'#888'}
-            onChangeText={setVenue}
-            />
+               <Text style={styles.label}>Price</Text>
             <TextInput
             style={styles.input}
             placeholder="Price"
@@ -159,18 +152,7 @@ const PlannerEvent = ({ navigation }) => {
                    <Text style={styles.label}>Description</Text>
                    <TextInput style={[styles.input, { height: 100 }]} placeholder="Event Description" value={description} onChangeText={setDescription} multiline numberOfLines={4} />
 
-          {/* Venue Type Dropdown */}
-          <Text style={styles.label}>Venue Type</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={venueType}
-              onValueChange={(itemValue) => setVenueType(itemValue)}
-              style={styles.picker}
-            >
-              <Picker.Item label="Outdoor" value="Outdoor" />
-              <Picker.Item label="Indoor" value="Indoor" />
-            </Picker>
-          </View>
+        
 
           {/* List of Services */}
           <Text style={styles.label}>Select Services</Text>
