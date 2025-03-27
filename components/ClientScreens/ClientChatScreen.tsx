@@ -50,18 +50,28 @@ const ClientChatScreen = ({ route, navigation }) => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || sending) return;
     setSending(true);
-
+  
+    const messageData = {
+      text: newMessage,
+      senderId: currentUserId,
+      receiverId: user.id,
+      timestamp: firestore.FieldValue.serverTimestamp(),
+    };
+  
     try {
+      // ✅ Add the message to Firestore
       await firestore()
         .collection('Chats')
         .doc(chatId)
         .collection('Messages')
-        .add({
-          text: newMessage,
-          senderId: currentUserId,
-          receiverId: user.id,
-          timestamp: FieldValue.serverTimestamp(),
-        });
+        .add(messageData);
+  
+      // ✅ Update last message details in Firestore (without modifying user object)
+      await firestore().collection('Chats').doc(chatId).set({
+        lastMessage: newMessage,
+        lastMessageTimestamp: firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+  
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -69,6 +79,7 @@ const ClientChatScreen = ({ route, navigation }) => {
       setSending(false);
     }
   };
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>

@@ -22,37 +22,40 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please enter email and password');
       return;
     }
-
+  
     setLoading(true);
-
+  
     try {
       // Check if the user exists in Clients collection
       const clientSnapshot = await firestore()
         .collection('Clients')
         .where('email', '==', email)
         .get();
-
+  
       if (clientSnapshot.empty) {
         setLoading(false);
         Alert.alert('Error', 'This account is not registered as a client.');
         return;
       }
-
+  
       // Authenticate user
       const userCredential = await auth().signInWithEmailAndPassword(email, password);
       const userId = userCredential.user.uid;
-
-      // Save user type
+  
+      // Save user type in AsyncStorage
       await AsyncStorage.setItem('userType', 'Clients');
-
+  
+      // Debug log to verify
+      const storedUserType = await AsyncStorage.getItem('userType');
+      console.log('Stored userType:', storedUserType); 
+  
       Alert.alert('Success', `Welcome ${email}!`);
-      navigation.navigate('main');
+      navigation.replace('main'); // Ensures proper navigation
     } catch (error) {
       setLoading(false);
       if (error.code === 'auth/user-not-found') {
@@ -66,7 +69,7 @@ const LoginScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
+  
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

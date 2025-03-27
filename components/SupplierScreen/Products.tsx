@@ -123,20 +123,41 @@ const Products = () => {
             </TouchableOpacity>
 
             <Text style={styles.label}>Service Name:</Text>
+
             <TextInput style={styles.input} placeholder="Enter service name" value={serviceName} onChangeText={setServiceName} />
 
+            <TextInput style={styles.input} placeholder="Enter service name" value={serviceName}   placeholderTextColor="#888" onChangeText={setServiceName} />
+            <Text style={styles.label}>Location:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedLocation}
+                onValueChange={(itemValue) => setSelectedLocation(itemValue)}
+                style={[styles.picker, { color: '#888' }]}
+              >
+                <Picker.Item label="Select Location" value="" />
+                <Picker.Item label="Calapan" value="Calapan" />
+                <Picker.Item label="Pinamalayan" value="Pinamalayan" />
+                <Picker.Item label="Naujan" value="Naujan" />
+                <Picker.Item label="Victoria" value="Victoria" />
+                <Picker.Item label="Socorro" value="Socorro" />
+                <Picker.Item label="Gloria" value="Gloria" />
+              </Picker>
+            </View>
+
+
             <Text style={styles.label}>Service Price:</Text>
-            <TextInput style={styles.input} placeholder="Enter Service price" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />
+            <TextInput style={styles.input} placeholder="Enter Service price"   placeholderTextColor="#888" keyboardType="numeric" value={servicePrice} onChangeText={setServicePrice} />
             <Text style={styles.label}>Gcash Number:</Text>
-            <TextInput style={styles.input} placeholder="Enter Gcash Number" keyboardType="numeric" value={gcashNumber} onChangeText={setGcashNumber} />
+            <TextInput style={styles.input} placeholder="Enter Gcash Number"   placeholderTextColor="#888" keyboardType="numeric" value={gcashNumber} onChangeText={setGcashNumber} />
             <Text style={styles.label}>Gcash Name:</Text>
-            <TextInput style={styles.input} placeholder="Enter Gcash name" value={gcashName} onChangeText={setGcashName} />
+            <TextInput style={styles.input} placeholder="Enter Gcash name"   placeholderTextColor="#888" value={gcashName} onChangeText={setGcashName} />
 
             <Text style={styles.label}>Description:</Text>
             <TextInput
               style={[styles.input, styles.descriptionInput]}
               placeholder="Description"
               multiline={true}
+              placeholderTextColor="#888"
               numberOfLines={4}
               value={description}
               onChangeText={setDescription}

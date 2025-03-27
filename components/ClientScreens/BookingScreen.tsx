@@ -38,11 +38,11 @@ const BookingsScreen = () => {
   useEffect(() => {
     const currentUser = auth().currentUser;
     if (!currentUser) return;
-
+  
     const unsubscribe = firestore()
       .collection('Bookings')
       .where('uid', '==', currentUser.uid)
-      .where('status', '==', 'Pending') // Listen to both statuses
+      .where('status', 'in', ['Pending', 'Booked']) // Fetch both statuses
       .onSnapshot(async snapshot => {
         if (snapshot.empty) {
           console.log('No bookings found');
@@ -50,41 +50,42 @@ const BookingsScreen = () => {
           setLoading(false); // Stop loading when no bookings are found
           return;
         }
-
+  
         const bookingsData = await Promise.all(
           snapshot.docs.map(async doc => {
             const bookingData = doc.data();
-
+  
             // Skip dismissed bookings
             if (dismissedBookings.has(doc.id)) {
               return null;
             }
-
+  
             // Fetch supplier details
             const supplierSnapshot = await firestore()
               .collection('Supplier')
               .where('supplierName', '==', bookingData.supplierName)
               .get();
-
+  
             const supplierData = supplierSnapshot.empty
               ? {}
               : supplierSnapshot.docs[0].data();
-
+  
             return {
               id: doc.id,
               ...bookingData,
               supplierDetails: supplierData,
             };
-          }),
+          })
         );
-
+  
         // Remove null entries (for dismissed bookings) and update state
         setBookings(bookingsData.filter(booking => booking !== null));
         setLoading(false); // Stop loading after data is fetched
       });
-
+  
     return () => unsubscribe(); // Cleanup listener when component unmounts
-  }, [dismissedBookings]); 
+  }, [dismissedBookings]);
+  
 
 
   

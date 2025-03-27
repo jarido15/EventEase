@@ -389,9 +389,9 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
-        {userType === 'Clients' ? (
+      {userType === 'Clients' ? (
           <Stack.Screen name="main" component={MainBottomTabs} />
-        ) : userType === 'Supplier' ? (
+        ): userType === 'Supplier' ? (
           <Stack.Screen name="Suppliermain" component={SupplierBottomTabs} />
         ) : userType === 'Planner' ? (
           <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
