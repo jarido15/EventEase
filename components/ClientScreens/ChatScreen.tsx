@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -8,8 +8,8 @@ import { useNavigation } from '@react-navigation/native';
 
 const Tab = createMaterialTopTabNavigator();
 
-// 🔹 Chat List Component
-const ChatList = ({ users, searchQuery, navigation, loading }) => {
+// 🔹 Chat List Component with Pull-to-Refresh
+const ChatList = ({ users, searchQuery, navigation, loading, refreshing, onRefresh }) => {
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -22,6 +22,7 @@ const ChatList = ({ users, searchQuery, navigation, loading }) => {
     <FlatList
       data={filteredUsers}
       keyExtractor={(item) => item.id}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#5392DD']} />}
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.chatItem}
@@ -51,9 +52,10 @@ const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false); // State for pull-to-refresh
   const navigation = useNavigation();
   
-  const currentUser = auth().currentUser; // 🔹 Fetch the currently logged-in user
+  const currentUser = auth().currentUser;
   const currentUserID = currentUser ? currentUser.uid : null;
 
   useEffect(() => {
@@ -61,14 +63,14 @@ const ChatScreen = () => {
       console.log('User is not logged in.');
       return;
     }
-
     fetchUsersWithMessages();
   }, [currentUserID]);
 
+  // 🔄 Function to fetch users with messages
   const fetchUsersWithMessages = async () => {
     if (!currentUserID) return;
-
     setLoading(true);
+
     try {
       const [suppliersSnapshot, plannersSnapshot] = await Promise.all([
         firestore().collection('Supplier').get(),
@@ -79,8 +81,6 @@ const ChatScreen = () => {
         ...suppliersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() })),
         ...plannersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() })),
       ];
-
-      console.log('Fetched Users:', allUsers.length, allUsers);
 
       const usersWithMessages = [];
 
@@ -98,17 +98,22 @@ const ChatScreen = () => {
 
         if (!messagesSnapshot1.empty || !messagesSnapshot2.empty) {
           usersWithMessages.push(user);
-          console.log(`User ${user.id} (${user.type}) has messages.`);
         }
       }
 
       setChatUsers(usersWithMessages);
-      console.log('Users with messages:', usersWithMessages.length, usersWithMessages);
     } catch (error) {
       console.error('Error fetching users with messages:', error);
     }
     setLoading(false);
   };
+
+  // 🔄 Pull-to-refresh handler
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchUsersWithMessages();
+    setRefreshing(false);
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -132,10 +137,10 @@ const ChatScreen = () => {
         }}
       >
         <Tab.Screen name="Suppliers">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} loading={loading} refreshing={refreshing} onRefresh={onRefresh} />}
         </Tab.Screen>
         <Tab.Screen name="Planners">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} loading={loading} refreshing={refreshing} onRefresh={onRefresh} />}
         </Tab.Screen>
       </Tab.Navigator>
     </View>
