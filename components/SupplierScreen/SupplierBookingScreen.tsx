@@ -68,76 +68,105 @@ const PendingScreen = () => {
 
   const acceptService = async () => {
     if (!selectedService) return;
-
-    setUpdating(true);
-    try {
-      const batch = firestore().batch();
-      const bookingRef = firestore()
-        .collection('Bookings')
-        .doc(selectedService.id);
-
-      // Update the booking status to 'Booked'
-      batch.update(bookingRef, { status: 'Booked' });
-
-      // Get the serviceId from the selectedService
-      const serviceId = selectedService.serviceId;
-
-      // Update the service status in Supplier -> Services
-      const serviceRef = firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .doc(serviceId);
-
-      // Add the eventDate and eventDuration to the unavailableDates array
-      const unavailableDates = firestore.FieldValue.arrayUnion({
-        eventDate: selectedService.eventDate,
-        eventDuration: selectedService.eventDuration,
-      });
-
-      batch.update(serviceRef, { unavailableDates });
-
-      // Commit batch updates
-      await batch.commit();
-
-      Alert.alert('Success', 'Service and Booking have been updated to Booked!');
-      setModalVisible(false);
-    } catch (error) {
-      console.error('Error updating service and booking:', error);
-      Alert.alert('Error', 'Failed to update service and booking.');
-    } finally {
-      setUpdating(false);
-    }
+  
+    Alert.alert(
+      "Confirm Booking",
+      "Are you sure you want to accept and book this service?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Accept",
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              const batch = firestore().batch();
+              const bookingRef = firestore()
+                .collection("Bookings")
+                .doc(selectedService.id);
+  
+              // Update the booking status to 'Booked'
+              batch.update(bookingRef, { status: "Booked" });
+  
+              // Get the serviceId from the selectedService
+              const serviceId = selectedService.serviceId;
+  
+              // Update the service status in Supplier -> Services
+              const serviceRef = firestore()
+                .collection("Supplier")
+                .doc(user.uid)
+                .collection("Services")
+                .doc(serviceId);
+  
+              // Add the eventDate and eventDuration to the unavailableDates array
+              const unavailableDates = firestore.FieldValue.arrayUnion({
+                eventDate: selectedService.eventDate,
+                eventDuration: selectedService.eventDuration,
+              });
+  
+              batch.update(serviceRef, { unavailableDates });
+  
+              // Commit batch updates
+              await batch.commit();
+  
+              Alert.alert("Success", "Service and Booking have been updated to Booked!");
+              setModalVisible(false);
+            } catch (error) {
+              console.error("Error updating service and booking:", error);
+              Alert.alert("Error", "Failed to update service and booking.");
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const cancelService = async () => {
     if (!selectedService || !cancelReason) {
-      Alert.alert('Error', 'Please provide a reason for canceling.');
+      Alert.alert("Error", "Please provide a reason for canceling.");
       return;
     }
-
-    setUpdating(true);
-    try {
-      const bookingRef = firestore()
-        .collection('Bookings')
-        .doc(selectedService.id);
-
-      // Update the booking status to 'Cancelled' and add the cancel reason
-      await bookingRef.update({
-        status: 'Cancelled',
-        cancelReason: cancelReason,
-      });
-
-      Alert.alert('Success', 'Booking has been cancelled.');
-      setModalVisible(false);
-    } catch (error) {
-      console.error('Error cancelling booking:', error);
-      Alert.alert('Error', 'Failed to cancel booking.');
-    } finally {
-      setUpdating(false);
-    }
+  
+    Alert.alert(
+      "Confirm Cancellation",
+      "Are you sure you want to cancel this booking?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Cancel",
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              const bookingRef = firestore()
+                .collection("Bookings")
+                .doc(selectedService.id);
+  
+              // Update the booking status to 'Cancelled' and add the cancel reason
+              await bookingRef.update({
+                status: "Cancelled",
+                cancelReason: cancelReason,
+              });
+  
+              Alert.alert("Success", "Booking has been cancelled.");
+              setModalVisible(false);
+            } catch (error) {
+              console.error("Error cancelling booking:", error);
+              Alert.alert("Error", "Failed to cancel booking.");
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
   };
-
 
 
   return (
@@ -289,60 +318,76 @@ const OngoingScreen = () => {
   const finishService = async () => {
     if (!selectedService) return;
   
-    setUpdating(true);
-    try {
-      const batch = firestore().batch();
-      const bookingRef = firestore()
-        .collection('Bookings')
-        .doc(selectedService.id);
+    Alert.alert(
+      "Confirm Completion",
+      "Are you sure you want to mark this service as finished?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Yes, Finish",
+          onPress: async () => {
+            setUpdating(true);
+            try {
+              const batch = firestore().batch();
+              const bookingRef = firestore()
+                .collection("Bookings")
+                .doc(selectedService.id);
   
-      // Update the booking status to 'Finished'
-      batch.update(bookingRef, { status: 'Paid' });
+              // Update the booking status to 'Paid'
+              batch.update(bookingRef, { status: "Paid" });
   
-      // Get the serviceId from the selectedService
-      const serviceId = selectedService.serviceId;
+              // Get the serviceId from the selectedService
+              const serviceId = selectedService.serviceId;
   
-      // Update the service status in Supplier -> Services
-      const serviceRef = firestore()
-        .collection('Supplier')
-        .doc(user.uid)
-        .collection('Services')
-        .doc(serviceId);
+              // Update the service status in Supplier -> Services
+              const serviceRef = firestore()
+                .collection("Supplier")
+                .doc(user.uid)
+                .collection("Services")
+                .doc(serviceId);
   
-      // Remove the specific eventDate and eventDuration from the unavailableDates array
-      const unavailableDates = firestore.FieldValue.arrayRemove({
-        eventDate: selectedService.eventDate,
-        eventDuration: selectedService.eventDuration,
-      });
+              // Remove the specific eventDate and eventDuration from the unavailableDates array
+              const unavailableDates = firestore.FieldValue.arrayRemove({
+                eventDate: selectedService.eventDate,
+                eventDuration: selectedService.eventDuration,
+              });
   
-      batch.update(serviceRef, { unavailableDates });
+              batch.update(serviceRef, { unavailableDates });
   
-      // Fetch current earnings
-      const supplierRef = firestore().collection('Supplier').doc(user.uid);
-      const supplierDoc = await supplierRef.get();
-      const currentEarnings = parseFloat(supplierDoc.data()?.earnings || '0');
+              // Fetch current earnings
+              const supplierRef = firestore().collection("Supplier").doc(user.uid);
+              const supplierDoc = await supplierRef.get();
+              const currentEarnings = parseFloat(supplierDoc.data()?.earnings || "0");
   
-      // Convert servicePrice to a number
-      const servicePrice = parseFloat(selectedService.servicePrice);
+              // Convert servicePrice to a number
+              const servicePrice = parseFloat(selectedService.servicePrice);
   
-      // Add servicePrice to current earnings
-      const newEarnings = currentEarnings + servicePrice;
+              // Add servicePrice to current earnings
+              const newEarnings = currentEarnings + servicePrice;
   
-      // Update supplier's earnings
-      batch.update(supplierRef, { earnings: newEarnings });
+              // Update supplier's earnings
+              batch.update(supplierRef, { earnings: newEarnings });
   
-      // Commit batch updates
-      await batch.commit();
+              // Commit batch updates
+              await batch.commit();
   
-      Alert.alert('Success', 'Service and Booking have been updated to Finished!');
-      setModalVisible(false);
-    } catch (error) {
-      console.error('Error updating service and booking:', error);
-      Alert.alert('Error', 'Failed to update service and booking.');
-    } finally {
-      setUpdating(false);
-    }
+              Alert.alert("Success", "Service and Booking have been updated to Finished!");
+              setModalVisible(false);
+            } catch (error) {
+              console.error("Error updating service and booking:", error);
+              Alert.alert("Error", "Failed to update service and booking.");
+            } finally {
+              setUpdating(false);
+            }
+          },
+        },
+      ]
+    );
   };
+  
 
 
   return (

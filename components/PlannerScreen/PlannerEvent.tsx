@@ -42,7 +42,6 @@ const PlannerEvent = ({ navigation }) => {
     { label: 'Decor and Styling', value: 'decor' },
     { label: 'Photography and Videography', value: 'photography' },
     { label: 'Event Rentals', value: 'rentals' },
-    { label: 'Event Planning and Coordination', value: 'planning' },
     { label: 'Make-up and Wardrobe', value: 'makeup' },
   ];
 
@@ -84,8 +83,6 @@ const PlannerEvent = ({ navigation }) => {
         .collection('PlannerServices')
         .add({
           serviceName,
-          eventDate: formatDate(eventDate),
-          eventTime: formatTime(eventTime),
           venue,
           servicePrice,
           venueType,
@@ -96,7 +93,7 @@ const PlannerEvent = ({ navigation }) => {
           status: 'Upcoming',
         });
   
-      Alert.alert('Success', 'Event created successfully!', [
+      Alert.alert('Success', 'Service created successfully!', [
         { text: 'OK', onPress: () => 
           navigation.reset({
             index: 0,
@@ -143,39 +140,6 @@ const PlannerEvent = ({ navigation }) => {
             onChangeText={setServiceName}
           />
 
-          {/* Date Picker */}
-          <Text style={styles.label}>Event Date</Text>
-          <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
-            <Text>{formatDate(eventDate)}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={eventDate}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(false);
-                if (selectedDate) setEventDate(selectedDate);
-              }}
-            />
-          )}
-
-          {/* Time Picker */}
-          <Text style={styles.label}>Event Time</Text>
-          <TouchableOpacity style={styles.input} onPress={() => setShowTimePicker(true)}>
-            <Text>{formatTime(eventTime)}</Text>
-          </TouchableOpacity>
-          {showTimePicker && (
-            <DateTimePicker
-              value={eventTime}
-              mode="time"
-              display="default"
-              onChange={(event, selectedTime) => {
-                setShowTimePicker(false);
-                if (selectedTime) setEventTime(selectedTime);
-              }}
-            />
-          )}
 
             <TextInput
             style={styles.input}

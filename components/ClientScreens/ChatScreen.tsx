@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { useNavigation } from '@react-navigation/native';
 
 const Tab = createMaterialTopTabNavigator();
 
+// 🔹 Chat List Component
 const ChatList = ({ users, searchQuery, navigation, loading }) => {
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -44,65 +46,69 @@ const ChatList = ({ users, searchQuery, navigation, loading }) => {
   );
 };
 
+// 🔹 Main Chat Screen Component
 const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
+  
+  const currentUser = auth().currentUser; // 🔹 Fetch the currently logged-in user
+  const currentUserID = currentUser ? currentUser.uid : null;
 
   useEffect(() => {
-    const fetchUsersWithLastMessage = async () => {
-      setLoading(true); // Start loading
-      try {
-        const suppliersSnapshot = await firestore().collection('Supplier').get();
-        const plannersSnapshot = await firestore().collection('Planner').get();
+    if (!currentUserID) {
+      console.log('User is not logged in.');
+      return;
+    }
 
-        const fetchLastMessage = async (userId) => {
-          const messagesSnapshot = await firestore()
-            .collection('Chats')
-            .doc(userId)
-            .collection('Messages')
-            .orderBy('timestamp', 'desc')
-            .limit(1)
-            .get();
+    fetchUsersWithMessages();
+  }, [currentUserID]);
 
-          if (!messagesSnapshot.empty) {
-            const lastMessageData = messagesSnapshot.docs[0].data();
-            return {
-              lastMessage: lastMessageData.text || 'No messages',
-              time: lastMessageData.timestamp?.toDate().toLocaleTimeString() || '',
-            };
-          } else {
-            return { lastMessage: 'No messages yet', time: '' };
-          }
-        };
+  const fetchUsersWithMessages = async () => {
+    if (!currentUserID) return;
 
-        const suppliers = await Promise.all(
-          suppliersSnapshot.docs.map(async (doc) => {
-            const user = { id: doc.id, type: 'Supplier', ...doc.data() };
-            const { lastMessage, time } = await fetchLastMessage(doc.id);
-            return { ...user, lastMessage, time };
-          })
-        );
+    setLoading(true);
+    try {
+      const [suppliersSnapshot, plannersSnapshot] = await Promise.all([
+        firestore().collection('Supplier').get(),
+        firestore().collection('Planner').get(),
+      ]);
 
-        const planners = await Promise.all(
-          plannersSnapshot.docs.map(async (doc) => {
-            const user = { id: doc.id, type: 'Planner', ...doc.data() };
-            const { lastMessage, time } = await fetchLastMessage(doc.id);
-            return { ...user, lastMessage, time };
-          })
-        );
+      const allUsers = [
+        ...suppliersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() })),
+        ...plannersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() })),
+      ];
 
-        setChatUsers([...suppliers, ...planners]);
-      } catch (error) {
-        console.error('Error fetching users with last messages:', error);
-      } finally {
-        setLoading(false); // Stop loading
+      console.log('Fetched Users:', allUsers.length, allUsers);
+
+      const usersWithMessages = [];
+
+      for (const user of allUsers) {
+        const chatDocID = `${user.id}_${currentUserID}`;
+        const reverseChatDocID = `${currentUserID}_${user.id}`;
+
+        const chatRef1 = firestore().collection('Chats').doc(chatDocID).collection('Messages');
+        const chatRef2 = firestore().collection('Chats').doc(reverseChatDocID).collection('Messages');
+
+        const [messagesSnapshot1, messagesSnapshot2] = await Promise.all([
+          chatRef1.limit(1).get(),
+          chatRef2.limit(1).get(),
+        ]);
+
+        if (!messagesSnapshot1.empty || !messagesSnapshot2.empty) {
+          usersWithMessages.push(user);
+          console.log(`User ${user.id} (${user.type}) has messages.`);
+        }
       }
-    };
 
-    fetchUsersWithLastMessage();
-  }, []);
+      setChatUsers(usersWithMessages);
+      console.log('Users with messages:', usersWithMessages.length, usersWithMessages);
+    } catch (error) {
+      console.error('Error fetching users with messages:', error);
+    }
+    setLoading(false);
+  };
 
   return (
     <View style={styles.container}>
@@ -136,6 +142,7 @@ const ChatScreen = () => {
   );
 };
 
+// 🔹 Styles
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FB' },
   appBar: { backgroundColor: "#5392DD", borderBottomLeftRadius: 20, borderBottomRightRadius: 20 },
@@ -147,7 +154,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 17, fontWeight: '600', color: '#333' },
   lastMessage: { fontSize: 14, color: '#777' },
   time: { fontSize: 12, color: '#888', textAlign: 'right' },
-  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' }, // Loader Style
+  loader: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
 
 export default ChatScreen;

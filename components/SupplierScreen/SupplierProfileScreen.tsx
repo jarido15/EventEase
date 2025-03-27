@@ -62,6 +62,19 @@ const SupplierProfileScreen = () => {
 
   const saveProfile = async () => {
     if (!user) return;
+  
+    // Name Validation (Only letters and spaces)
+    if (editData.supplierName && !/^[A-Za-z\s]+$/.test(editData.supplierName)) {
+      Alert.alert('Invalid Name', 'Name should contain only letters and spaces.');
+      return;
+    }
+  
+    // Contact Number Validation (Must be exactly 11 digits)
+    if (editData.ContactNumber && !/^\d{11}$/.test(editData.ContactNumber)) {
+      Alert.alert('Invalid Contact Number', 'Contact number must be exactly 11 digits.');
+      return;
+    }
+  
     try {
       await firestore().collection('Supplier').doc(user.uid).update(editData);
       setProfile(prev => ({ ...prev, ...editData }));
@@ -72,6 +85,7 @@ const SupplierProfileScreen = () => {
       Alert.alert('Error', 'Failed to update profile');
     }
   };
+  
 
   const handleLogout = async () => {
     const user = auth().currentUser; // Ensure we get the latest user state
@@ -152,7 +166,6 @@ const SupplierProfileScreen = () => {
           <ProfileItem label="Email" value={profile.email} />
           <ProfileItem label="Business Name" value={profile.BusinessName} />
           <ProfileItem label="Contact Number" value={profile.ContactNumber} />
-          <ProfileItem label="Address" value={profile.Address} />
           <ProfileItem label="Location" value={profile.Location} />
           <ProfileItem label="Earnings" value={`PHP ${profile.earnings}`} />
         </View>
@@ -166,44 +179,102 @@ const SupplierProfileScreen = () => {
 
       {/* Edit Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <ScrollView>
-              {profile &&
-                Object.keys(profile).map(
-                  (key) =>
-                    key !== 'profilePicture' &&
-                    key !== 'coverPhoto' &&
-                    key !== 'earnings' &&
-                    key !== 'accountStatus' &&
-                    key !== 'createdAt' &&
-                    key !== 'email' && (
-                      <TextInput
-                        key={key}
-                        style={styles.input}
-                        placeholder={key}
-                        defaultValue={profile[key]}
-                        onChangeText={(text) => handleEdit(key, text)}
-                      />
-                    )
-                )}
-              <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
-                <Text style={styles.uploadText}>Upload Profile Picture</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('coverPhoto')}>
-                <Text style={styles.uploadText}>Upload Cover Photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
-                <Text style={styles.saveText}>Save</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+  <View style={styles.modalContainer}>
+    <View style={styles.modalContent}>
+      <Text style={styles.modalTitle}>Edit Profile</Text>
+      <ScrollView>
+
+        {/* Ordered fields */}
+        {profile && (
+          <>
+            {/* Full Name - No numbers allowed */}
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              defaultValue={profile.supplierName}
+              onChangeText={(text) => {
+                if (/^[A-Za-z\s]*$/.test(text)) handleEdit('supplierName', text);
+              }}
+            />
+
+            {/* Business Name */}
+            <TextInput
+              style={styles.input}
+              placeholder="Business Name"
+              defaultValue={profile.BusinessName}
+              onChangeText={(text) => handleEdit('BusinessName', text)}
+            />
+
+            {/* Contact Number - Only 11-digit numeric input */}
+            <TextInput
+              style={styles.input}
+              placeholder="Contact Number"
+              keyboardType="numeric"
+              defaultValue={profile.ContactNumber}
+              maxLength={11}
+              onChangeText={(text) => {
+                if (/^\d{0,11}$/.test(text)) handleEdit('ContactNumber', text);
+              }}
+            />
+
+            {/* Location */}
+            <TextInput
+              style={styles.input}
+              placeholder="Location"
+              defaultValue={profile.Location}
+              onChangeText={(text) => handleEdit('Location', text)}
+            />
+          </>
+        )}
+
+        {/* Other fields excluding hidden ones */}
+        {profile &&
+          Object.keys(profile).map(
+            (key) =>
+              ![
+                'supplierName',
+                'BusinessName',
+                'ContactNumber',
+                'Location',
+                'profilePicture',
+                'coverPhoto',
+                'earnings',
+                'accountStatus',  // 🚀 Hiding `accountStatus`
+                'createdAt',
+                'email',
+              ].includes(key) && (
+                <TextInput
+                  key={key}
+                  style={styles.input}
+                  placeholder={key}
+                  defaultValue={profile[key]}
+                  onChangeText={(text) => handleEdit(key, text)}
+                />
+              )
+          )}
+
+        {/* Upload Buttons */}
+        <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
+          <Text style={styles.uploadText}>Upload Profile Picture</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('coverPhoto')}>
+          <Text style={styles.uploadText}>Upload Cover Photo</Text>
+        </TouchableOpacity>
+
+        {/* Save and Cancel Buttons */}
+        <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
+          <Text style={styles.saveText}>Save</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cancelButton} onPress={() => setModalVisible(false)}>
+          <Text style={styles.cancelText}>Cancel</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+    </View>
+  </View>
+</Modal>
+
+
     </ScrollView>
   );
 };
