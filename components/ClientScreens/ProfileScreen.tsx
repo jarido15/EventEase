@@ -8,6 +8,8 @@ const ProfileScreen = () => {
   const navigation = useNavigation();
   const [userData, setUserData] = useState(null);
   const user = auth().currentUser;
+  const [userType, setUserType] = useState(null); // Add this
+
 
   // Fetch user data from Firestore when component mounts
   useEffect(() => {
@@ -30,33 +32,57 @@ const ProfileScreen = () => {
     }
   }, [user?.uid]);
 
-  const handleLogout =async  () => {
-    await AsyncStorage.removeItem('userType'); // Clear session
-    Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'OK',
-          onPress: () => {
-            auth()
-              .signOut()
-              .then(() => {
-                navigation.navigate('ClientLogin'); // Navigate to the ClientLogin screen
-              })
-              .catch(error => {
-                console.error('Error during sign-out: ', error);
-              });
-          },
-        },
-      ],
-      { cancelable: false }
-    );
+  const handleLogout = async () => {
+    console.log('🚀 Logout button pressed'); // Debug log
+  
+    try {
+      const storedUserType = await AsyncStorage.getItem('userType'); 
+      console.log('🟢 Fetched userType:', storedUserType); // Debug log
+  
+      if (storedUserType === 'Clients') {
+        Alert.alert(
+          'Log Out',
+          'Are you sure you want to log out?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'OK',
+              onPress: async () => {
+                console.log('✅ Logout confirmed'); // Debug
+  
+                try {
+                  await AsyncStorage.removeItem('userType'); // Clear userType from AsyncStorage
+                  console.log('🔄 userType removed from AsyncStorage'); // Debug log
+  
+                  setUserType(null); // Reset userType in state
+  
+                  await auth().signOut();
+                  console.log('👋 User signed out from Firebase'); // Debug log
+  
+                  setUserData(null); // Clear user data
+  
+                  navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'ClientLogin' }],
+                  });
+                } catch (error) {
+                  console.error('❌ Error during sign-out:', error);
+                }
+              }
+            }
+          ],
+          { cancelable: false }
+        );
+      } else {
+        console.log('⚠️ User type is not Client, logout aborted.');
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user type:', error);
+    }
   };
+  
+  
+  
 
   return (
     <View style={styles.container}>
@@ -93,9 +119,17 @@ const ProfileScreen = () => {
         <Text style={styles.text}>💳 Payment and Booking</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.item} onPress={handleLogout}>
-        <Text style={styles.text}>🚪 Logout</Text>
-      </TouchableOpacity>
+      <TouchableOpacity 
+  style={styles.item} 
+  onPress={() => { 
+    console.log('🚀 Logout button clicked');
+    handleLogout();
+  }}
+>
+  <Text style={styles.text}>🚪 Logout</Text>
+</TouchableOpacity>
+
+
     </View>
   );
 };
