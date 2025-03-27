@@ -9,7 +9,11 @@ import { useNavigation } from '@react-navigation/native';
 const Tab = createMaterialTopTabNavigator();
 
 // 🔹 Chat List Component
+
+const ChatList = ({ users, searchQuery, navigation, loading }) => {
+
 const ChatList = ({ users, searchQuery, navigation, loading, refreshing, onRefresh }) => {
+
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -54,8 +58,13 @@ const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
   const [refreshing, setRefreshing] = useState(false);
+
   const navigation = useNavigation();
+  
+  const currentUser = auth().currentUser; // 🔹 Fetch the currently logged-in user
+  const currentUserID = currentUser ? currentUser.uid : null;
 
   const currentUser = auth().currentUser;
   const currentUserID = currentUser ? currentUser.uid : null;
@@ -65,6 +74,55 @@ const ChatScreen = () => {
       console.log('User is not logged in.');
       return;
     }
+
+
+    fetchUsersWithMessages();
+  }, [currentUserID]);
+
+  const fetchUsersWithMessages = async () => {
+    if (!currentUserID) return;
+
+    setLoading(true);
+    try {
+      const [suppliersSnapshot, plannersSnapshot] = await Promise.all([
+        firestore().collection('Supplier').get(),
+        firestore().collection('Planner').get(),
+      ]);
+
+      const allUsers = [
+        ...suppliersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() })),
+        ...plannersSnapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() })),
+      ];
+
+      console.log('Fetched Users:', allUsers.length, allUsers);
+
+      const usersWithMessages = [];
+
+      for (const user of allUsers) {
+        const chatDocID = `${user.id}_${currentUserID}`;
+        const reverseChatDocID = `${currentUserID}_${user.id}`;
+
+        const chatRef1 = firestore().collection('Chats').doc(chatDocID).collection('Messages');
+        const chatRef2 = firestore().collection('Chats').doc(reverseChatDocID).collection('Messages');
+
+        const [messagesSnapshot1, messagesSnapshot2] = await Promise.all([
+          chatRef1.limit(1).get(),
+          chatRef2.limit(1).get(),
+        ]);
+
+        if (!messagesSnapshot1.empty || !messagesSnapshot2.empty) {
+          usersWithMessages.push(user);
+          console.log(`User ${user.id} (${user.type}) has messages.`);
+        }
+      }
+
+      setChatUsers(usersWithMessages);
+      console.log('Users with messages:', usersWithMessages.length, usersWithMessages);
+    } catch (error) {
+      console.error('Error fetching users with messages:', error);
+    }
+    setLoading(false);
+  };
 
     const unsubscribe = fetchUsersWithMessages();
 
@@ -157,6 +215,7 @@ const ChatScreen = () => {
     fetchUsersWithMessages();
     setRefreshing(false);
   }, []);
+
 
   return (
     <View style={styles.container}>
