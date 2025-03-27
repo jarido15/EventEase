@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, FlatList, Text, StyleSheet, Image, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -9,7 +9,11 @@ import { useNavigation } from '@react-navigation/native';
 const Tab = createMaterialTopTabNavigator();
 
 // 🔹 Chat List Component
+
 const ChatList = ({ users, searchQuery, navigation, loading }) => {
+
+const ChatList = ({ users, searchQuery, navigation, loading, refreshing, onRefresh }) => {
+
   const filteredUsers = users.filter(user =>
     (user.supplierName || user.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -22,6 +26,7 @@ const ChatList = ({ users, searchQuery, navigation, loading }) => {
     <FlatList
       data={filteredUsers}
       keyExtractor={(item) => item.id}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#5392DD']} />}
       renderItem={({ item }) => (
         <TouchableOpacity
           style={styles.chatItem}
@@ -39,7 +44,9 @@ const ChatList = ({ users, searchQuery, navigation, loading }) => {
               {item.lastMessage || 'No messages yet'}
             </Text>
           </View>
-          <Text style={styles.time}>{item.time || ''}</Text>
+          <Text style={styles.time}>
+            {item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : ''}
+          </Text>
         </TouchableOpacity>
       )}
     />
@@ -51,9 +58,15 @@ const ChatScreen = () => {
   const [chatUsers, setChatUsers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] = useState(false);
+
   const navigation = useNavigation();
   
   const currentUser = auth().currentUser; // 🔹 Fetch the currently logged-in user
+  const currentUserID = currentUser ? currentUser.uid : null;
+
+  const currentUser = auth().currentUser;
   const currentUserID = currentUser ? currentUser.uid : null;
 
   useEffect(() => {
@@ -61,6 +74,7 @@ const ChatScreen = () => {
       console.log('User is not logged in.');
       return;
     }
+
 
     fetchUsersWithMessages();
   }, [currentUserID]);
@@ -110,6 +124,99 @@ const ChatScreen = () => {
     setLoading(false);
   };
 
+    const unsubscribe = fetchUsersWithMessages();
+
+    return () => unsubscribe && unsubscribe();
+  }, [currentUserID]);
+
+  // 🔄 Function to fetch users and listen for latest messages
+  const fetchUsersWithMessages = () => {
+    if (!currentUserID) return;
+
+    setLoading(true);
+
+    const unsubscribeSuppliers = firestore()
+      .collection('Supplier')
+      .onSnapshot(snapshot => {
+        const suppliers = snapshot.docs.map(doc => ({ id: doc.id, type: 'Supplier', ...doc.data() }));
+        updateChatUsers(suppliers);
+      });
+
+    const unsubscribePlanners = firestore()
+      .collection('Planner')
+      .onSnapshot(snapshot => {
+        const planners = snapshot.docs.map(doc => ({ id: doc.id, type: 'Planner', ...doc.data() }));
+        updateChatUsers(planners);
+      });
+
+    return () => {
+      unsubscribeSuppliers();
+      unsubscribePlanners();
+    };
+  };
+
+  // 🔄 Update chat users with latest message and sort by timestamp
+  const updateChatUsers = (newUsers) => {
+    const allUsers = [...newUsers];
+
+    allUsers.forEach(user => {
+      const chatDocID = `${user.id}_${currentUserID}`;
+      const reverseChatDocID = `${currentUserID}_${user.id}`;
+
+      const chatRef1 = firestore().collection('Chats').doc(chatDocID).collection('Messages');
+      const chatRef2 = firestore().collection('Chats').doc(reverseChatDocID).collection('Messages');
+
+      const unsubscribeMessages = chatRef1
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .onSnapshot(snapshot1 => {
+          processLatestMessage(snapshot1, user);
+        });
+
+      const unsubscribeMessagesReverse = chatRef2
+        .orderBy('timestamp', 'desc')
+        .limit(1)
+        .onSnapshot(snapshot2 => {
+          processLatestMessage(snapshot2, user);
+        });
+
+      return () => {
+        unsubscribeMessages();
+        unsubscribeMessagesReverse();
+      };
+    });
+
+    setLoading(false);
+  };
+
+  // 🔄 Process the latest message for a user (Fix: Create a new object)
+  const processLatestMessage = (snapshot, user) => {
+    if (!snapshot.empty) {
+      const latestMessageDoc = snapshot.docs[0].data();
+      
+      // Create a new user object instead of modifying the original one
+      const updatedUser = {
+        ...user,
+        lastMessage: latestMessageDoc.text || 'No message',
+        timestamp: latestMessageDoc.timestamp?.toMillis() || 0,
+      };
+
+      setChatUsers(prevUsers => {
+        // Remove the old entry if exists, then add the updated user
+        const updatedUsers = prevUsers.filter(u => u.id !== updatedUser.id);
+        return [...updatedUsers, updatedUser].sort((a, b) => b.timestamp - a.timestamp);
+      });
+    }
+  };
+
+  // 🔄 Pull-to-refresh handler
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchUsersWithMessages();
+    setRefreshing(false);
+  }, []);
+
+
   return (
     <View style={styles.container}>
       <Appbar.Header style={styles.appBar}>
@@ -132,10 +239,10 @@ const ChatScreen = () => {
         }}
       >
         <Tab.Screen name="Suppliers">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Supplier')} searchQuery={searchQuery} navigation={navigation} loading={loading} refreshing={refreshing} onRefresh={onRefresh} />}
         </Tab.Screen>
         <Tab.Screen name="Planners">
-          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} loading={loading} />}
+          {() => <ChatList users={chatUsers.filter(user => user.type === 'Planner')} searchQuery={searchQuery} navigation={navigation} loading={loading} refreshing={refreshing} onRefresh={onRefresh} />}
         </Tab.Screen>
       </Tab.Navigator>
     </View>
