@@ -561,18 +561,18 @@ const BookingsScreen = () => {
               placeholderTextColor={'#888'}
               editable={false} // Disable editing for the gcashNumber
             />
-                    <TextInput
-            placeholder="Enter Reference Number"
-            placeholderTextColor={'#888'}
-            style={[styles.input, { color: '#888' }]} // Added text color
-            value={referenceNumber}
-            onChangeText={text => {
-              const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
-              setGcashNumber(filteredText);
-            }}
-            keyboardType="numeric"
-            maxLength={13}
-          />
+                   <TextInput
+  placeholder="Enter Reference Number"
+  placeholderTextColor={'#888'}
+  style={[styles.input, { color: '#888' }]} // Added text color
+  value={referenceNumber}
+  onChangeText={text => {
+    const filteredText = text.replace(/[^0-9]/g, '').slice(0, 13);
+    setReferenceNumber(filteredText); // Fix: Updating referenceNumber, not gcashNumber
+  }}
+  keyboardType="numeric"
+  maxLength={13}
+/>
 
             <TextInput
               style={styles.input}
