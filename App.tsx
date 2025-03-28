@@ -195,7 +195,7 @@ function SupplierBottomTabs() {
       <Stack.Screen name="SupplierRegister2" component={RegisterScreen2} />
       <Stack.Screen name="ServiceEditScreen" component={ServiceEditScreen} />
       <Stack.Screen name="SupplierCategory" component={SupplierCategory} />
-      <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
+   
       <Stack.Screen name="EditService" component={EditServiceScreen}
               options={{title: 'Edit Service'}}
             />
@@ -268,6 +268,7 @@ function PlannerBottomTabs()
         component={PlannerTabNavigator}
       />
       <Stack.Screen name="SupplierHomeScreen" component={SupplierHomeScreen} />
+      <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
       <Stack.Screen
         name="SupplierChatScreen"
         component={SupplierChatScreen}
@@ -293,7 +294,6 @@ function PlannerBottomTabs()
               component={PlannerChatScreen}
               options={{title: 'Chat'}}
             />
-            <Stack.Screen name="Plannermain" component={PlannerBottomTabs} />
 
     </SupplierStack.Navigator>
   );

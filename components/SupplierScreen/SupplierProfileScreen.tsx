@@ -237,7 +237,6 @@ const SupplierProfileScreen = () => {
                 'ContactNumber',
                 'Location',
                 'profilePicture',
-                'coverPhoto',
                 'earnings',
                 'accountStatus',  // 🚀 Hiding `accountStatus`
                 'createdAt',
@@ -257,9 +256,7 @@ const SupplierProfileScreen = () => {
         <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
           <Text style={styles.uploadText}>Upload Profile Picture</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('coverPhoto')}>
-          <Text style={styles.uploadText}>Upload Cover Photo</Text>
-        </TouchableOpacity>
+      
 
         {/* Save and Cancel Buttons */}
         <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
