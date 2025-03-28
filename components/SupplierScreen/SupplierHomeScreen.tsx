@@ -28,6 +28,8 @@ const SupplierHomeScreen = () => {
         const ratingsSnapshot = await firestore()
           .collection('Supplier')
           .doc(user.uid)
+          .collection('Services')
+          .doc(doc.id)
           .collection('Rating')
           .get();
 

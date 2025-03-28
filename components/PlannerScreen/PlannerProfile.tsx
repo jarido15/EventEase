@@ -160,24 +160,19 @@ const PlannerProfileScreen = () => {
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
             <ScrollView>
-              {profile &&
-                Object.keys(profile).map(
-                  (key) =>
-                    key !== 'profilePicture' &&
-                    key !== 'coverPhoto' &&
-                    key !== 'earnings' &&
-                    key !== 'accountStatus' &&
-                    key !== 'createdAt' &&
-                    key !== 'email' && (
-                      <TextInput
-                        key={key}
-                        style={styles.input}
-                        placeholder={key}
-                        defaultValue={profile[key]}
-                        onChangeText={(text) => handleEdit(key, text)}
-                      />
-                    )
-                )}
+            {profile &&
+  Object.keys(profile)
+    .filter((key) => !['profilePicture', 'coverPhoto', 'uid', 'earnings', 'accountStatus', 'createdAt', 'email'].includes(key))
+    .map((key) => (
+      <TextInput
+        key={key}
+        style={styles.input}
+        placeholder={key}
+        defaultValue={profile[key]}
+        onChangeText={(text) => handleEdit(key, text)}
+      />
+    ))}
+
               <TouchableOpacity style={styles.uploadButton} onPress={() => handleImagePicker('profilePicture')}>
                 <Text style={styles.uploadText}>Upload Profile Picture</Text>
               </TouchableOpacity>
